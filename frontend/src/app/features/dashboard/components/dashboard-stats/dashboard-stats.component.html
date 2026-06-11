@@ -1,0 +1,57 @@
+<div class="flex gap-4">
+  <!-- Card 1: Reuniones Realizadas -->
+  <div class="flex-1 bg-[#1d2022] border border-white/5 rounded-2xl p-5 flex flex-col gap-3">
+    <div class="flex items-start justify-between">
+      <div class="flex items-center gap-2">
+        <!-- checkmark icon -->
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <!-- % change badge -->
+      <span
+        class="text-xs font-semibold px-2 py-0.5 rounded-full"
+        [ngClass]="isPositive
+          ? 'bg-green-500/15 text-green-400'
+          : 'bg-red-500/15 text-red-400'"
+      >
+        {{ percentageLabel }} vs ayer
+      </span>
+    </div>
+
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Reuniones Realizadas</p>
+      <p class="text-4xl font-bold text-white leading-none">
+        {{ stats?.meetingsCompleted ?? '—' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Card 2: Tiempo Total -->
+  <div class="flex-1 bg-[#1d2022] border border-white/5 rounded-2xl p-5 flex flex-col gap-3">
+    <div class="flex items-start justify-between">
+      <div class="flex items-center gap-2">
+        <!-- clock icon -->
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <!-- timing badge -->
+      <span
+        class="text-xs font-semibold px-2 py-0.5 rounded-full"
+        [ngClass]="isOptimal
+          ? 'bg-blue-500/15 text-blue-400'
+          : 'bg-yellow-500/15 text-yellow-400'"
+      >
+        {{ timingLabel }}
+      </span>
+    </div>
+
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Tiempo Total</p>
+      <p class="text-4xl font-bold text-white leading-none">
+        {{ stats?.totalHours ?? '—' }}
+      </p>
+    </div>
+  </div>
+</div>

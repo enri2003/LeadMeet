@@ -1,0 +1,45 @@
+<div *ngIf="meeting; else noMeeting"
+  class="bg-[#1d2022] border border-white/5 rounded-2xl p-5 flex items-start justify-between gap-4 h-full">
+
+  <div class="flex-1 min-w-0">
+    <!-- Title -->
+    <h3 class="text-base font-semibold text-white mb-1 truncate">
+      Próximo Hito: {{ meeting.title }}
+    </h3>
+
+    <!-- Description / time info -->
+    <p class="text-sm text-gray-400 mb-3 leading-relaxed">
+      Faltan <span class="text-white font-medium">{{ minutesLeft }} minutos</span> para el inicio.
+      Revisa la minuta cargada en la sección de documentos.
+    </p>
+
+    <!-- Tags row -->
+    <div class="flex flex-wrap gap-2">
+      <span *ngIf="meeting.meetingCode"
+        class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-gray-300 border border-white/10 font-mono">
+        ID: {{ meeting.meetingCode }}
+      </span>
+      <span *ngIf="meeting.isConfidential"
+        class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-gray-300 border border-white/10">
+        Confidencial
+      </span>
+      <span class="text-xs px-2.5 py-1 rounded-full bg-white/5 text-gray-300 border border-white/10 capitalize">
+        {{ meeting.type }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Countdown block -->
+  <div class="flex flex-col items-center justify-center bg-[#252a2c] border border-white/5 rounded-xl px-5 py-4 min-w-[90px] shrink-0">
+    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Empieza en</p>
+    <p class="text-2xl font-bold text-white leading-none">{{ countdownDisplay }}</p>
+    <!-- live pulse indicator -->
+    <span class="mt-2 w-2 h-2 rounded-full bg-blue-500 animate-pulse-dot"></span>
+  </div>
+</div>
+
+<ng-template #noMeeting>
+  <div class="bg-[#1d2022] border border-white/5 rounded-2xl p-5 flex items-center justify-center h-full">
+    <p class="text-sm text-gray-500">No hay reuniones próximas programadas.</p>
+  </div>
+</ng-template>

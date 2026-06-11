@@ -1,0 +1,109 @@
+<!-- Floating controls bar — Task 4.3 -->
+<div class="flex items-center gap-3 px-5 py-3
+            bg-[#1d2022]/80 backdrop-blur-xl
+            border border-white/10 rounded-2xl shadow-2xl">
+
+  <!-- Microphone -->
+  <button
+    (click)="toggleMute.emit()"
+    [class.bg-red-600]="isMuted"
+    [class.hover:bg-red-700]="isMuted"
+    [class.bg-white/10]="!isMuted"
+    [class.hover:bg-white/20]="!isMuted"
+    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    [attr.title]="isMuted ? 'Activar micrófono' : 'Silenciar'"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <ng-container *ngIf="!isMuted">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </ng-container>
+      <ng-container *ngIf="isMuted">
+        <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+      </ng-container>
+    </svg>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">MIC</span>
+  </button>
+
+  <!-- Camera -->
+  <button
+    (click)="toggleCamera.emit()"
+    [class.bg-red-600]="isCameraOff"
+    [class.hover:bg-red-700]="isCameraOff"
+    [class.bg-white/10]="!isCameraOff"
+    [class.hover:bg-white/20]="!isCameraOff"
+    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    [attr.title]="isCameraOff ? 'Activar cámara' : 'Apagar cámara'"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <ng-container *ngIf="!isCameraOff">
+        <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+      </ng-container>
+      <ng-container *ngIf="isCameraOff">
+        <path d="M21 6.5l-4 4V7a1 1 0 00-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4a1 1 0 00-1 1v10a1 1 0 001 1h12c.2 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
+      </ng-container>
+    </svg>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">CÁMARA</span>
+  </button>
+
+  <!-- Screen share -->
+  <button
+    (click)="toggleScreenShare.emit()"
+    [class.bg-[#0055ff]]="isSharingScreen"
+    [class.bg-white/10]="!isSharingScreen"
+    [class.hover:bg-white/20]="!isSharingScreen"
+    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    [attr.title]="isSharingScreen ? 'Dejar de compartir' : 'Compartir pantalla'"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6zm8 9l-4-4h3V8h2v3h3l-4 4z"/>
+    </svg>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">COMPARTIR</span>
+  </button>
+
+  <!-- Chat -->
+  <button
+    (click)="toggleChat.emit()"
+    [class.bg-[#0055ff]]="isChatOpen"
+    [class.bg-white/10]="!isChatOpen"
+    [class.hover:bg-white/20]="!isChatOpen"
+    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    title="Chat"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+    </svg>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">CHAT</span>
+  </button>
+
+  <!-- Separator -->
+  <div class="w-px h-10 bg-white/10 mx-1"></div>
+
+  <!-- End meeting (host only) -->
+  <button
+    *ngIf="isHost"
+    (click)="endMeeting.emit()"
+    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl
+           bg-red-600 hover:bg-red-700 transition-colors min-w-[56px]"
+    title="Finalizar para todos"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/>
+    </svg>
+    <span class="text-white text-[10px] font-medium uppercase tracking-wide">FINALIZAR</span>
+  </button>
+
+  <!-- Leave call -->
+  <button
+    (click)="leaveCall.emit()"
+    class="flex flex-col items-center gap-1 px-5 py-2 rounded-xl
+           bg-red-600 hover:bg-red-700 transition-colors min-w-[64px]"
+    title="Salir de la reunión"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+    </svg>
+    <span class="text-white text-[10px] font-medium uppercase tracking-wide">SALIR</span>
+  </button>
+
+</div>
