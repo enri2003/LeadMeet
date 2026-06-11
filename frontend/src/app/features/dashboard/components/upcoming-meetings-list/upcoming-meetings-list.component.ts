@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { UpcomingMeeting } from '../../../../core/models/dashboard.model';
 
 @Component({
@@ -10,6 +11,12 @@ import { UpcomingMeeting } from '../../../../core/models/dashboard.model';
 })
 export class UpcomingMeetingsListComponent {
   @Input() meetings: UpcomingMeeting[] = [];
+
+  private readonly router = inject(Router);
+
+  enterMeeting(meeting: UpcomingMeeting): void {
+    this.router.navigate(['/meeting', meeting.id]);
+  }
 
   isToday(isoDate: string): boolean {
     const d = new Date(isoDate);

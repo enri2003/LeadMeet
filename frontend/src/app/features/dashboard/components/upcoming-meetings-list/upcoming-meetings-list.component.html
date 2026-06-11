@@ -55,6 +55,7 @@
       <!-- Entrar: shown only today + within 30 min of start -->
       <button
         *ngIf="canEnter(meeting)"
+        (click)="enterMeeting(meeting)"
         class="bg-[#0055ff] hover:bg-[#0044cc] text-white text-sm font-semibold rounded-lg px-6 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
       >
         Entrar

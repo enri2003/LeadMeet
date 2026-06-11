@@ -34,14 +34,25 @@
           programadas en tu agenda ejecutiva.
         </p>
       </div>
-      <button
-        class="flex items-center gap-2 bg-white text-gray-900 text-sm font-semibold rounded-xl px-5 py-2.5 hover:bg-gray-100 transition-colors"
-      >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-        </svg>
-        Nueva reunión
-      </button>
+      <div class="flex items-center gap-3">
+        <button
+          (click)="joinDemo()"
+          class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl px-5 py-2.5 transition-colors border border-white/10"
+        >
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+          </svg>
+          Unirse a demo
+        </button>
+        <button
+          class="flex items-center gap-2 bg-white text-gray-900 text-sm font-semibold rounded-xl px-5 py-2.5 hover:bg-gray-100 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+          </svg>
+          Nueva reunión
+        </button>
+      </div>
     </div>
 
     <!-- Stats + Next meeting row -->

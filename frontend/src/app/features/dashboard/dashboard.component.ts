@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { DashboardStats } from '../../core/models/dashboard.model';
 import { DashboardStatsComponent } from './components/dashboard-stats/dashboard-stats.component';
@@ -22,7 +23,13 @@ export class DashboardComponent implements OnInit {
   loading = true;
   error: string | null = null;
 
+  private readonly router = inject(Router);
+
   constructor(private dashboardService: DashboardService) {}
+
+  joinDemo(): void {
+    this.router.navigate(['/meeting', 'sala-demo']);
+  }
 
   ngOnInit(): void {
     this.dashboardService.getStats().subscribe({
