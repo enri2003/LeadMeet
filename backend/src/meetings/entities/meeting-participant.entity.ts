@@ -2,6 +2,8 @@ import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 't
 import { Meeting } from './meeting.entity';
 import { User } from '../../users/entities/user.entity';
 
+export type ParticipantRole = 'Anfitrión' | 'Participante' | 'Guest';
+
 @Entity('meeting_participants')
 export class MeetingParticipant {
   @PrimaryGeneratedColumn('uuid')
@@ -21,6 +23,12 @@ export class MeetingParticipant {
   @Column({ name: 'user_id' })
   userId: string;
 
+  @Column({ name: 'participant_role', length: 50, default: 'Participante' })
+  participantRole: string;
+
   @Column({ name: 'joined_at', type: 'timestamptz', nullable: true })
   joinedAt: Date | null;
+
+  @Column({ name: 'left_at', type: 'timestamptz', nullable: true })
+  leftAt: Date | null;
 }

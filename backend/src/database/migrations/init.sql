@@ -44,10 +44,12 @@ CREATE TABLE IF NOT EXISTS meetings (
 
 -- Meeting participants
 CREATE TABLE IF NOT EXISTS meeting_participants (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  meeting_id  UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-  user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  joined_at   TIMESTAMPTZ,
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  meeting_id        UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+  user_id           UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  participant_role  VARCHAR(50) NOT NULL DEFAULT 'Participante',
+  joined_at         TIMESTAMPTZ,
+  left_at           TIMESTAMPTZ,
   UNIQUE(meeting_id, user_id)
 );
 

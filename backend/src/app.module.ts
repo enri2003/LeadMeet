@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { MeetingsModule } from './meetings/meetings.module';
+import { AuthModule } from './auth/auth.module';
 import { Meeting } from './meetings/entities/meeting.entity';
 import { User } from './users/entities/user.entity';
 import { MeetingParticipant } from './meetings/entities/meeting-participant.entity';
@@ -23,7 +25,9 @@ import { MeetingParticipant } from './meetings/entities/meeting-participant.enti
       }),
       inject: [ConfigService],
     }),
+    AuthModule,
     DashboardModule,
+    MeetingsModule,
   ],
 })
 export class AppModule {}
