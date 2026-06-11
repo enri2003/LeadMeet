@@ -17,7 +17,7 @@ export class DashboardService {
     // --- Completed meetings total ---
     const completed = await this.meetingRepo.find({
       where: { createdById: userId, status: 'completed' },
-      relations: ['participants', 'participants.user'],
+      relations: { participants: { user: true } },
     });
 
     const totalMinutes = completed.reduce((acc, m) => {
@@ -53,7 +53,7 @@ export class DashboardService {
     // --- Next 3 upcoming meetings ---
     const upcoming = await this.meetingRepo.find({
       where: { createdById: userId, status: 'scheduled', startTime: MoreThan(now) },
-      relations: ['participants', 'participants.user'],
+      relations: { participants: { user: true } },
       order: { startTime: 'ASC' },
       take: 3,
     });

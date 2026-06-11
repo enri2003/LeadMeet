@@ -14,7 +14,7 @@ import { MeetingParticipant } from './meetings/entities/meeting-participant.enti
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         host: config.get('DB_HOST'),
-        port: +config.get<number>('DB_PORT'),
+        port: +(config.get<string>('DB_PORT') ?? '5432'),
         database: config.get('DB_NAME'),
         username: config.get('DB_USER'),
         password: config.get('DB_PASSWORD'),
