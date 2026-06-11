@@ -1,0 +1,81 @@
+<div class="flex flex-col h-full gap-6 px-7 py-7 overflow-y-auto">
+
+  <!-- Loading skeleton -->
+  <ng-container *ngIf="loading">
+    <div class="animate-pulse space-y-4">
+      <div class="h-8 w-56 bg-white/5 rounded-xl"></div>
+      <div class="h-4 w-96 bg-white/5 rounded-lg"></div>
+      <div class="flex gap-4">
+        <div class="flex-1 h-28 bg-white/5 rounded-2xl"></div>
+        <div class="flex-1 h-28 bg-white/5 rounded-2xl"></div>
+        <div class="flex-1 h-28 bg-white/5 rounded-2xl"></div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Error state -->
+  <div *ngIf="error && !loading"
+    class="bg-red-500/10 border border-red-500/20 rounded-2xl p-5 text-red-400 text-sm">
+    {{ error }}
+  </div>
+
+  <!-- Dashboard content -->
+  <ng-container *ngIf="stats && !loading">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-white">
+          Bienvenido, Ricardo
+        </h1>
+        <p class="text-sm text-gray-400 mt-1">
+          Prepárate para tus compromisos de hoy. Tienes
+          <span class="text-white font-medium">{{ stats!.upcomingMeetings.length }} reuniones</span>
+          programadas en tu agenda ejecutiva.
+        </p>
+      </div>
+      <button
+        class="flex items-center gap-2 bg-white text-gray-900 text-sm font-semibold rounded-xl px-5 py-2.5 hover:bg-gray-100 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Nueva reunión
+      </button>
+    </div>
+
+    <!-- Stats + Next meeting row -->
+    <div class="flex gap-4 items-stretch">
+      <!-- Stats cards (left, 2/3 width) -->
+      <div class="flex-1">
+        <app-dashboard-stats [stats]="stats"></app-dashboard-stats>
+      </div>
+
+      <!-- Next meeting hero (right, ~1/3 width) -->
+      <div class="w-80 shrink-0">
+        <app-next-meeting-hero [meeting]="stats.nextMeeting"></app-next-meeting-hero>
+      </div>
+    </div>
+
+    <!-- Upcoming meetings section -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span class="text-sm font-semibold text-white">Próximas reuniones</span>
+        </div>
+        <button class="text-xs text-gray-500 hover:text-gray-300 uppercase tracking-wider transition-colors">
+          Ver calendario completo
+        </button>
+      </div>
+
+      <app-upcoming-meetings-list
+        [meetings]="stats.upcomingMeetings">
+      </app-upcoming-meetings-list>
+    </div>
+
+  </ng-container>
+</div>
