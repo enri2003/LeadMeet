@@ -7,6 +7,11 @@ import {
   Output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+import {
+  ScreenShareService,
+  ScreenShareOptions,
+} from '../../../../core/services/screen-share.service';
 
 export type ShareTab = 'screen' | 'window' | 'browser';
 
@@ -26,38 +31,40 @@ export interface ScreenSource {
 export class ShareScreenModalComponent implements OnInit, OnDestroy {
   @Input() isOpen = false;
 
-  /** Emits the chosen options when user clicks "Compartir ahora" */
-  @Output() shareConfirmed = new EventEmitter<{
-    sourceType: ShareTab;
-    withAudio: boolean;
-    optimizeForVideo: boolean;
-  }>();
+  /** Fires when sharing starts successfully (MediaStream ready) */
+  @Output() shareStarted = new EventEmitter<MediaStream>();
 
+  /** Fires when user cancels or closes the modal */
   @Output() cancelled = new EventEmitter<void>();
+
+  /** Fires when sharing is stopped (native button or stopCapture()) */
+  @Output() shareStopped = new EventEmitter<void>();
 
   activeTab: ShareTab = 'screen';
   withAudio = false;
   optimizeForVideo = false;
   viewMode: 'grid' | 'list' = 'grid';
-
   selectedSourceId: string | null = null;
+  isLoading = false;
+  captureError: string | null = null;
 
-  /** Placeholder sources shown per tab */
+  private sub = new Subscription();
+
   screenSources: ScreenSource[] = [
     { id: 'screen-1', label: 'Pantalla principal 1', thumbnailDataUrl: null, isSelected: true },
     { id: 'screen-2', label: 'Monitor externo 2',   thumbnailDataUrl: null, isSelected: false },
   ];
 
   windowSources: ScreenSource[] = [
-    { id: 'win-1', label: 'Chrome — Lead Meet',   thumbnailDataUrl: null, isSelected: false },
-    { id: 'win-2', label: 'VS Code — proyecto',   thumbnailDataUrl: null, isSelected: false },
-    { id: 'win-3', label: 'Terminal',              thumbnailDataUrl: null, isSelected: false },
-    { id: 'win-4', label: 'Explorador de archivos', thumbnailDataUrl: null, isSelected: false },
+    { id: 'win-1', label: 'Chrome — Lead Meet',      thumbnailDataUrl: null, isSelected: false },
+    { id: 'win-2', label: 'VS Code — proyecto',      thumbnailDataUrl: null, isSelected: false },
+    { id: 'win-3', label: 'Terminal',                thumbnailDataUrl: null, isSelected: false },
+    { id: 'win-4', label: 'Explorador de archivos',  thumbnailDataUrl: null, isSelected: false },
   ];
 
   browserTabSources: ScreenSource[] = [
-    { id: 'tab-1', label: 'Lead Meet — Dashboard', thumbnailDataUrl: null, isSelected: false },
-    { id: 'tab-2', label: 'Nueva pestaña',          thumbnailDataUrl: null, isSelected: false },
+    { id: 'tab-1', label: 'Lead Meet — Dashboard',  thumbnailDataUrl: null, isSelected: false },
+    { id: 'tab-2', label: 'Nueva pestaña',           thumbnailDataUrl: null, isSelected: false },
   ];
 
   tabs: { id: ShareTab; label: string; iconPath: string }[] = [
@@ -78,11 +85,24 @@ export class ShareScreenModalComponent implements OnInit, OnDestroy {
     },
   ];
 
+  constructor(private screenShareSvc: ScreenShareService) {}
+
   ngOnInit(): void {
     this.selectedSourceId = this.screenSources[0].id;
+
+    // Forward "stopped externally" event to parent
+    this.sub.add(
+      this.screenShareSvc.sharingStopped$.subscribe(() => {
+        this.shareStopped.emit();
+      }),
+    );
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    this.sub.unsubscribe();
+  }
+
+  // ── Getters ──────────────────────────────────────────────────────────────
 
   get activeSources(): ScreenSource[] {
     switch (this.activeTab) {
@@ -93,32 +113,60 @@ export class ShareScreenModalComponent implements OnInit, OnDestroy {
   }
 
   get canShare(): boolean {
-    return this.selectedSourceId !== null;
+    return this.selectedSourceId !== null && !this.isLoading;
   }
+
+  // ── Actions ──────────────────────────────────────────────────────────────
 
   selectTab(tab: ShareTab): void {
     this.activeTab = tab;
     this.selectedSourceId = null;
+    this.captureError = null;
   }
 
   selectSource(source: ScreenSource): void {
     this.selectedSourceId = source.id;
+    this.captureError = null;
   }
 
   isSourceSelected(source: ScreenSource): boolean {
     return this.selectedSourceId === source.id;
   }
 
-  onShare(): void {
+  /** Map selected tab to the displaySurface hint understood by the browser */
+  private get displaySurface(): 'monitor' | 'window' | 'browser' {
+    switch (this.activeTab) {
+      case 'screen':  return 'monitor';
+      case 'window':  return 'window';
+      case 'browser': return 'browser';
+    }
+  }
+
+  async onShare(): Promise<void> {
     if (!this.canShare) return;
-    this.shareConfirmed.emit({
-      sourceType: this.activeTab,
-      withAudio: this.withAudio,
+
+    this.isLoading = true;
+    this.captureError = null;
+
+    const opts: ScreenShareOptions = {
+      withAudio:        this.withAudio,
       optimizeForVideo: this.optimizeForVideo,
-    });
+      displaySurface:   this.displaySurface,
+    };
+
+    try {
+      const stream = await this.screenShareSvc.startCapture(opts);
+      this.shareStarted.emit(stream);
+    } catch (err: unknown) {
+      this.captureError =
+        err instanceof Error ? err.message : 'No se pudo iniciar la captura.';
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   onCancel(): void {
+    this.captureError = null;
     this.cancelled.emit();
   }
 
