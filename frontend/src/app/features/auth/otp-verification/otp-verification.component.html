@@ -1,0 +1,189 @@
+<div class="min-h-screen bg-[#101415] flex flex-col items-center justify-center px-4 py-10">
+
+  <!-- Card principal -->
+  <div class="w-full max-w-md bg-[#181c1e] border border-white/8 rounded-2xl px-8 py-10 shadow-2xl">
+
+    <!-- Logo -->
+    <div class="flex justify-center mb-6">
+      <div class="w-12 h-12 bg-[#1d2022] border border-white/10 rounded-xl flex items-center justify-center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3L22 19H2L12 3Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Éxito -->
+    @if (successMsg) {
+      <div class="text-center">
+        <div class="w-16 h-16 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">¡Verificado!</h2>
+        <p class="text-sm text-gray-400">{{ successMsg }}</p>
+        <p class="text-xs text-gray-600 mt-3">Redirigiendo al login...</p>
+      </div>
+    }
+
+    @if (!successMsg) {
+      <!-- Título -->
+      <h1 class="text-2xl font-bold text-white text-center mb-1">Verifica tu cuenta</h1>
+      <p class="text-sm text-gray-400 text-center mb-2">
+        Enviamos un código a
+      </p>
+      @if (email) {
+        <p class="text-sm text-[#0055ff] font-medium text-center mb-6">{{ maskedEmail }}</p>
+      }
+
+      <!-- Countdown ring -->
+      <div class="flex justify-center mb-6">
+        <div class="relative w-20 h-20">
+          <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+            <circle cx="40" cy="40" r="34" fill="none"
+              [attr.stroke]="isExpired ? '#ef4444' : '#0055ff'"
+              stroke-width="6"
+              stroke-linecap="round"
+              [attr.stroke-dasharray]="213.6"
+              [attr.stroke-dashoffset]="213.6 * (1 - progress / 100)"
+              style="transition: stroke-dashoffset 1s linear, stroke 0.3s ease"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            @if (!isExpired) {
+              <span class="text-white font-bold text-lg leading-none">
+                {{ minutesDisplay }}:{{ secondsDisplay }}
+              </span>
+              <span class="text-gray-500 text-[10px] mt-0.5">min</span>
+            } @else {
+              <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner de código expirado -->
+      @if (isExpired) {
+        <div class="mb-5 flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 rounded-lg px-4 py-3">
+          <svg class="w-4 h-4 text-orange-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-sm text-orange-300">El código expiró. Solicita uno nuevo.</p>
+        </div>
+      }
+
+      <!-- Error del servidor -->
+      @if (serverError) {
+        <div class="mb-5 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+          <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-sm text-red-300">{{ serverError }}</p>
+        </div>
+      }
+
+      <!-- Inputs OTP -->
+      <div class="flex justify-center gap-3 mb-6" (paste)="onPaste($event)">
+        @for (d of digits; track $index) {
+          <input
+            #otpInput
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            [value]="d"
+            [disabled]="isExpired || isLoading"
+            (keydown)="onKeyDown($event, $index)"
+            class="w-12 h-14 text-center text-xl font-bold text-white rounded-xl
+                   bg-[#1d2022] border-2 border-white/10
+                   focus:outline-none focus:border-[#0055ff] focus:bg-[#1a2035]
+                   disabled:opacity-40 disabled:cursor-not-allowed
+                   transition-all duration-200 caret-transparent select-none"
+            [class.border-[#0055ff]]="d !== ''"
+            [class.border-red-500]="serverError !== null"
+          />
+        }
+      </div>
+
+      <!-- Instrucción -->
+      <p class="text-xs text-gray-500 text-center mb-6">
+        Ingresa el código de 6 dígitos. Puedes pegarlo directamente.
+      </p>
+
+      <!-- Botón verificar -->
+      <button
+        type="button"
+        (click)="onSubmit()"
+        [disabled]="!codeComplete || isLoading || isExpired"
+        class="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200
+               transition-all duration-200 flex items-center justify-center gap-2
+               disabled:opacity-40 disabled:cursor-not-allowed text-sm tracking-wider uppercase mb-4">
+        @if (isLoading) {
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          Verificando...
+        } @else {
+          Verificar código
+        }
+      </button>
+
+      <!-- Reenviar código -->
+      <div class="text-center">
+        @if (isExpired || remainingSeconds < 30) {
+          <button
+            type="button"
+            (click)="resend()"
+            [disabled]="isResending"
+            class="text-sm text-[#0055ff] hover:text-blue-400 transition-colors disabled:opacity-50 font-medium">
+            @if (isResending) {
+              <span class="inline-flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                Enviando...
+              </span>
+            } @else {
+              Reenviar código
+            }
+          </button>
+        } @else {
+          <p class="text-xs text-gray-600">
+            Puedes reenviar el código en
+            <span class="text-gray-400 font-medium">{{ remainingSeconds }}s</span>
+          </p>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Volver -->
+  <a routerLink="/register"
+    class="mt-6 text-sm text-gray-600 hover:text-gray-400 transition-colors flex items-center gap-1.5">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+    </svg>
+    Volver al registro
+  </a>
+
+  <!-- Footer -->
+  <footer class="mt-6 flex items-center justify-between w-full max-w-md px-1">
+    <span class="text-xs text-gray-600">© 2024 Lead Meet Inc.</span>
+    <div class="flex items-center gap-3">
+      <button class="text-gray-600 hover:text-gray-400 transition-colors" title="Ayuda">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </button>
+      <button class="text-gray-600 hover:text-gray-400 transition-colors" title="Idioma">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+        </svg>
+      </button>
+    </div>
+  </footer>
+
+</div>
