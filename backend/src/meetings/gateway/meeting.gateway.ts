@@ -16,11 +16,10 @@ import {
   StartSharingDto,
   StopSharingDto,
 } from '../dto/sharing-event.dto';
+import { MeetingLogService } from '../services/meeting-log.service';
+import { SourceType } from '../entities/meeting-log.entity';
 
-/**
- * Un Map que guarda qué usuario está compartiendo en cada sala.
- * Clave: roomId  →  Valor: userId del usuario que comparte (solo uno a la vez).
- */
+/** roomId → userId del participante que está compartiendo */
 type RoomSharingMap = Map<string, string>;
 
 @WebSocketGateway({
@@ -36,7 +35,6 @@ export class MeetingGateway
 
   private readonly logger = new Logger(MeetingGateway.name);
 
-  /** roomId → userId del participante que está compartiendo */
   private readonly sharingMap: RoomSharingMap = new Map();
 
   /** socketId → { roomId, userId, userName } para cleanup en disconnect */
@@ -44,6 +42,8 @@ export class MeetingGateway
     string,
     { roomId: string; userId: string; userName: string }
   >();
+
+  constructor(private readonly meetingLogSvc: MeetingLogService) {}
 
   // ── Ciclo de vida ──────────────────────────────────────────────────────
 
@@ -60,14 +60,11 @@ export class MeetingGateway
       return;
     }
 
-    // Unirse a la sala (room de Socket.IO = roomId)
     client.join(roomId);
+    this.clientMeta.set(client.id, { roomId, userId, userName: '' });
     this.logger.log(`[${roomId}] Usuario ${userId} conectado (socket: ${client.id})`);
 
-    // Guardar meta del cliente para usarlo en disconnect
-    this.clientMeta.set(client.id, { roomId, userId, userName: '' });
-
-    // Informar al cliente si alguien ya está compartiendo en esta sala
+    // Informar al nuevo participante si alguien ya comparte en la sala
     const currentSharer = this.sharingMap.get(roomId);
     if (currentSharer) {
       client.emit('sharingStatus', { sharingUserId: currentSharer });
@@ -81,9 +78,13 @@ export class MeetingGateway
     const { roomId, userId, userName } = meta;
     this.clientMeta.delete(client.id);
 
-    // Si este usuario estaba compartiendo, limpiar y notificar a la sala
+    // Si este usuario estaba compartiendo, limpiar y notificar
     if (this.sharingMap.get(roomId) === userId) {
       this.sharingMap.delete(roomId);
+
+      // Cerrar el log de actividad
+      void this.meetingLogSvc.logShareStopped(userId, roomId);
+
       const payload: SharingBroadcastDto = {
         userId,
         userName,
@@ -94,23 +95,18 @@ export class MeetingGateway
       this.logger.log(`[${roomId}] Compartición detenida por desconexión de ${userId}`);
     }
 
-    this.logger.log(`[${roomId}] Usuario ${userId} desconectado (socket: ${client.id})`);
+    this.logger.log(`[${roomId}] Usuario ${userId} desconectado`);
   }
 
   // ── Eventos de compartir pantalla ──────────────────────────────────────
 
-  /**
-   * El cliente emite "startSharing" cuando inicia la captura de pantalla.
-   * Regla: solo un usuario puede compartir a la vez por sala.
-   */
   @SubscribeMessage('startSharing')
-  handleStartSharing(
+  async handleStartSharing(
     @MessageBody() dto: StartSharingDto,
     @ConnectedSocket() client: Socket,
-  ): void {
+  ): Promise<void> {
     const { roomId, userId, userName } = dto;
 
-    // Validar que no haya otro usuario compartiendo en esta sala
     const currentSharer = this.sharingMap.get(roomId);
     if (currentSharer && currentSharer !== userId) {
       throw new WsException(
@@ -118,12 +114,18 @@ export class MeetingGateway
       );
     }
 
-    // Registrar al usuario como compartidor activo
     this.sharingMap.set(roomId, userId);
 
-    // Actualizar userName en los metadatos del cliente
     const meta = this.clientMeta.get(client.id);
     if (meta) meta.userName = userName;
+
+    // --- Registrar en base de datos (Tarea 5.5) ---
+    await this.meetingLogSvc.logShareStarted({
+      userId,
+      roomId,
+      sourceType: (dto as StartSharingDto & { sourceType?: SourceType }).sourceType,
+      withAudio:  (dto as StartSharingDto & { withAudio?: boolean }).withAudio ?? false,
+    });
 
     const payload: SharingBroadcastDto = {
       userId,
@@ -131,43 +133,33 @@ export class MeetingGateway
       roomId,
       timestamp: new Date().toISOString(),
     };
-
-    // Emitir a TODOS los de la sala (incluido el emisor)
     this.server.to(roomId).emit('userStartedSharing', payload);
-
-    this.logger.log(`[${roomId}] ${userName} (${userId}) empezó a compartir pantalla`);
+    this.logger.log(`[${roomId}] ${userName} (${userId}) empezó a compartir`);
   }
 
-  /**
-   * El cliente emite "stopSharing" cuando detiene la captura.
-   */
   @SubscribeMessage('stopSharing')
-  handleStopSharing(
+  async handleStopSharing(
     @MessageBody() dto: StopSharingDto,
-    @ConnectedSocket() _client: Socket,
-  ): void {
+  ): Promise<void> {
     const { roomId, userId, userName } = dto;
 
-    // Solo limpiar si este usuario es el que estaba compartiendo
     if (this.sharingMap.get(roomId) === userId) {
       this.sharingMap.delete(roomId);
     }
 
+    // --- Cerrar el registro en base de datos (Tarea 5.5) ---
+    await this.meetingLogSvc.logShareStopped(userId, roomId);
+
     const payload: SharingBroadcastDto = {
       userId,
       userName,
       roomId,
       timestamp: new Date().toISOString(),
     };
-
     this.server.to(roomId).emit('userStoppedSharing', payload);
-
-    this.logger.log(`[${roomId}] ${userName} (${userId}) detuvo la compartición de pantalla`);
+    this.logger.log(`[${roomId}] ${userName} (${userId}) detuvo la compartición`);
   }
 
-  /**
-   * Permite consultar quién está compartiendo en una sala.
-   */
   @SubscribeMessage('getSharingStatus')
   handleGetSharingStatus(
     @MessageBody() data: { roomId: string },
