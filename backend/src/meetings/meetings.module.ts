@@ -2,13 +2,20 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Meeting } from './entities/meeting.entity';
 import { MeetingParticipant } from './entities/meeting-participant.entity';
-import { MeetingGateway } from './meeting.gateway';
+import { MeetingLog } from './entities/meeting-log.entity';
+import { MeetingGateway } from './gateway/meeting.gateway';
 import { MeetingsService } from './meetings.service';
+import { MeetingLogService } from './services/meeting-log.service';
+import { MeetingLogsController } from './controllers/meeting-logs.controller';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Meeting, MeetingParticipant]), AuthModule],
-  providers: [MeetingGateway, MeetingsService],
-  exports: [MeetingsService],
+  imports: [
+    TypeOrmModule.forFeature([Meeting, MeetingParticipant, MeetingLog]),
+    AuthModule,
+  ],
+  providers: [MeetingGateway, MeetingsService, MeetingLogService],
+  controllers: [MeetingLogsController],
+  exports: [MeetingsService, MeetingLogService],
 })
 export class MeetingsModule {}

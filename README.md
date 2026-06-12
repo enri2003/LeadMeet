@@ -6,10 +6,46 @@ Plataforma web tipo Teams/Google Meet/Zoom orientada a ejecutivos.
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Angular 17 + Tailwind CSS + WebRTC API |
-| Backend | NestJS + TypeScript + Socket.io |
+| Frontend | Angular 17 + Tailwind CSS + Screen Capture API |
+| Backend | NestJS + TypeScript + Socket.IO |
 | Base de Datos | PostgreSQL 16 (Docker) |
 | ORM | TypeORM |
+| Tiempo real | WebSockets + WebRTC vía @nestjs/platform-socket.io |
+
+---
+
+## Inicio rápido
+
+### 1. Base de datos (Docker)
+
+```bash
+docker compose up -d
+```
+
+Crea la base de datos `leadmeet` con datos semilla automáticamente.  
+Ejecuta también la migración `002_meeting_logs.sql` para la tabla de logs.
+
+### 2. Backend
+
+```bash
+cd backend
+npm install
+npm run start:dev
+```
+
+- API REST: `http://localhost:3000`
+- Swagger UI: `http://localhost:3000/api`
+- Socket.IO: `ws://localhost:3000`
+
+### 3. Frontend
+
+```bash
+cd frontend
+npm install
+npx ng serve
+```
+
+App disponible en `http://localhost:4200`
 
 ---
 
@@ -25,187 +61,129 @@ Plataforma web tipo Teams/Google Meet/Zoom orientada a ejecutivos.
 | 2.4 | `GET /dashboard/stats` — Endpoint consolidado (NestJS) | ✅ |
 | 2.5 | Validación `TIMESTAMPTZ` y estados `scheduled`/`completed` (PostgreSQL) | ✅ |
 
-### Arquitectura Módulo 1
-
-```
-frontend/src/app/
-├── features/dashboard/
-│   ├── dashboard.component           ← página principal
-│   └── components/
-│       ├── dashboard-stats/          ← tarjetas de métricas
-│       ├── next-meeting-hero/        ← countdown próxima reunión
-│       └── upcoming-meetings-list/   ← lista de reuniones
-├── core/
-│   ├── models/dashboard.model.ts
-│   └── services/dashboard.service.ts
-└── layout/sidebar/                   ← navegación lateral
-
-backend/src/
-├── dashboard/
-│   ├── dashboard.controller.ts       ← GET /dashboard/stats
-│   ├── dashboard.service.ts
-│   └── dto/dashboard-stats.dto.ts
-└── database/migrations/init.sql      ← schema + seed data
-```
-
----
-
-## Módulo 2 — Sala de Reunión (Core WebRTC)
-
-### Tareas implementadas
-
-| # | Tarea | Estado |
-|---|---|---|
-| 4.1 | `MeetingGateway` — Señalización WebRTC con Socket.io (offer/answer/ICE) | ✅ |
-| 4.2 | `MeetingRoomComponent` — Sala de video dinámica con cuadrícula + panel lateral | ✅ |
-| 4.3 | `MeetingControlsComponent` — Barra flotante (Mic, Cámara, Compartir, Chat, Salir) | ✅ |
-| 4.4 | `MediaStreamService` + `SignalingService` — Gestión de streams y WebSockets | ✅ |
-| 4.5 | Persistencia de sesión — `joined_at` / `left_at` en PostgreSQL + `endMeeting` | ✅ |
-
-### Arquitectura Módulo 2
-
-```
-frontend/src/app/
-├── features/meeting-room/
-│   ├── meeting-room.component        ← orquestador WebRTC (RTCPeerConnection mesh)
-│   └── components/
-│       ├── video-tile/               ← tile de video individual con avatar fallback
-│       └── meeting-controls/         ← barra flotante backdrop-blur
-├── core/
-│   ├── models/meeting-room.model.ts  ← RoomParticipant, ChatMessage, RoomStatePayload
-│   └── services/
-│       ├── signaling.service.ts      ← cliente Socket.io /meeting
-│       └── media-stream.service.ts   ← getUserMedia, toggleMute/Camera, screenShare
-
-backend/src/
-├── auth/
-│   ├── auth.module.ts                ← JwtModule
-│   └── ws-jwt.guard.ts               ← WsJwtGuard (dev: modo guest sin token)
-└── meetings/
-    ├── meeting.gateway.ts            ← WebSocket Gateway /meeting namespace
-    ├── meetings.module.ts
-    ├── meetings.service.ts           ← recordJoin, recordLeave, endMeeting
-    ├── dto/join-room.dto.ts
-    └── entities/
-        ├── meeting.entity.ts
-        └── meeting-participant.entity.ts  ← + left_at + participant_role
-```
-
-### Flujo WebRTC (mesh topology)
-
-```
-Usuario A entra a la sala
-  └── Server envía room-state [B, C] a A
-        └── A crea RTCPeerConnection para B y C
-              └── A envía offers a B y C
-                    └── B y C responden con answers
-                          └── Intercambio de ICE candidates (STUN: Google)
-
-Nuevo usuario D entra
-  └── Server notifica user-joined a A, B, C
-        └── A, B, C envían offers a D
-              └── D responde con answers
-```
-
-### Eventos Socket.io
-
-| Evento (emit) | Dirección | Descripción |
-|---|---|---|
-| `join-room` | client → server | Entrar a sala con nombre/userId |
-| `webrtc-offer` | client → server → peer | Relay de offer SDP |
-| `webrtc-answer` | client → server → peer | Relay de answer SDP |
-| `ice-candidate` | client → server → peer | Relay de ICE candidate |
-| `toggle-mute` | client → server → room | Sincronizar estado de micrófono |
-| `toggle-camera` | client → server → room | Sincronizar estado de cámara |
-| `chat-message` | client → server → room | Mensaje de chat en sala |
-| `leave-room` | client → server | Salir de sala |
-| `end-meeting` | host → server → room | Finalizar reunión para todos |
-
-### Restricción crítica — Privacy First
-
-> **Sin grabación.** El gateway no implementa ningún mecanismo de `MediaRecorder` ni almacenamiento de streams. Solo señalización peer-to-peer.
-
----
-
-## Inicio rápido
-
-### 1. Base de datos (Docker)
-
-```bash
-docker compose up -d
-```
-
-Crea la BD `leadmeet` con datos semilla automáticamente.
-
-### 2. Backend
-
-```bash
-cd backend
-npm install
-npm run start:dev
-```
-
-API disponible en `http://localhost:3000`  
-Swagger UI en `http://localhost:3000/api`  
-WebSocket en `ws://localhost:3000/meeting`
-
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-npx ng serve
-```
-
-App disponible en `http://localhost:4200`
-
-Para entrar a la sala de prueba: clic en **"Unirse a demo"** en el dashboard.
-
----
-
-## Endpoints
-
-### Módulo 1
+### Endpoint principal
 
 ```
 GET /dashboard/stats?userId=<uuid>
 ```
 
-Responde con JSON consolidado:
-- `meetingsCompleted` — total de reuniones finalizadas
-- `totalHours` — tiempo acumulado (ej. `18.5h`)
-- `percentageChange` — % cambio hoy vs ayer
-- `upcomingMeetings` — próximas 3 reuniones ordenadas por `start_time`
-- `nextMeeting` + `minutesUntilNext` — para el countdown
+Devuelve: `meetingsCompleted`, `totalHours`, `percentageChange`, `upcomingMeetings[]`, `nextMeeting`, `minutesUntilNext`
 
-### Módulo 2 — WebSocket `/meeting`
+---
 
-| Namespace | Puerto | Transporte |
+## Módulo 2 — Sala de Reunión WebRTC
+
+| # | Tarea | Estado |
 |---|---|---|
-| `/meeting` | 3000 | WebSocket |
+| 4.1 | `MeetingRoomComponent` — Sala WebRTC con video/audio en tiempo real | ✅ |
+| 4.2 | `SignalingService` — Señalización WebRTC vía Socket.IO | ✅ |
+| 4.3 | `MeetingGateway` (Módulo 2) — Eventos de sala: join, offer, answer, ice | ✅ |
+| 4.4 | `MediaStreamService` — Gestión de cámara, micrófono y streams | ✅ |
 
-Ruta de sala en frontend: `/meeting/:roomId`
-
----
-
-## Guía de estilo aplicada
-
-```
-Fondo sala:   bg-[#101415]
-Video tile:   bg-black rounded-2xl border border-white/5 overflow-hidden
-Barra ctrl:   bg-[#1d2022]/80 backdrop-blur-xl border border-white/10 rounded-2xl
-Panel lateral: bg-[#131313] border-l border-white/5
-Acento:       #0055ff  (hover: #0044cc)
-Botón salir:  bg-red-600 hover:bg-red-700 text-white
-Tipografía:   Geist, Inter, ui-sans-serif
-```
+Ruta: `/meeting/:roomId`
 
 ---
 
-## Ramas del repositorio
+## Módulo 3 — Compartir Pantalla
 
-| Rama | Contenido |
+### Tareas implementadas
+
+| # | Tarea | Estado |
+|---|---|---|
+| 5.1 | `ShareScreenModalComponent` — Modal de selección de fuente con pestañas | ✅ |
+| 5.2 | `ScreenShareService` — Captura real con `getDisplayMedia` | ✅ |
+| 5.3 | `MeetingRoomComponent` — Gestión del stream en sala con RTCPeerConnection | ✅ |
+| 5.4 | `MeetingGateway` — Eventos Socket.IO en NestJS | ✅ |
+| 5.5 | `meeting_logs` — Registro de actividad en PostgreSQL | ✅ |
+
+### Descripción de componentes
+
+#### Frontend
+
+**`ShareScreenModalComponent`** (`/features/meeting-room/components/share-screen-modal/`)
+- Modal con `backdrop-blur`, fondo `bg-[#131313]`, `rounded-3xl`
+- 3 pestañas: Toda la pantalla, Ventana de aplicación, Pestaña del navegador
+- Tarjetas de fuente con `border-2 hover:border-blue-500` y checkmark al seleccionar
+- Vista cuadrícula / lista (toggle)
+- Toggles: **Compartir audio del sistema** y **Optimizar para videoclip**
+- Botón **COMPARTIR AHORA** (`bg-white text-black rounded-xl`) con spinner de carga
+- Banner de error en rojo si el browser niega el permiso
+
+**`ScreenShareService`** (`/core/services/screen-share.service.ts`)
+- Llama `navigator.mediaDevices.getDisplayMedia()` con restricciones dinámicas
+- `optimizeForVideo = true` → 60 fps + `contentHint = 'motion'`
+- `optimizeForVideo = false` → 30 fps + `contentHint = 'detail'` (texto nítido)
+- `withAudio = true` → captura audio del sistema sin echoCancellation
+- Evento `onended` del track → limpia stream y emite `sharingStopped$`
+- `replaceTrackInSender(pc, track)` → reemplaza el track en `RTCPeerConnection`
+- Estado reactivo en `BehaviorSubject<ScreenShareState>`
+
+**`MeetingRoomComponent`** (`/features/meeting-room/`)
+- Ruta: `/room/:roomId`
+- Video de pantalla compartida ocupa el área central (`object-contain`)
+- Cámara local como ventana flotante (esquina inferior derecha)
+- Controles: Mic, Cámara, Share, Chat, Colgar — con toggle real de los tracks
+- Banner azul cuando otro participante está compartiendo
+
+**`MeetingSocketService`** (`/core/services/meeting-socket.service.ts`)
+- Wrapper de `socket.io-client`
+- Subjects: `userStartedSharing$`, `userStoppedSharing$`
+- Métodos: `connect()`, `emitStartSharing()`, `emitStopSharing()`, `disconnect()`
+
+#### Backend
+
+**`MeetingGateway`** (`/backend/src/meetings/gateway/`)
+
+| Evento (recibe) | Acción |
 |---|---|
-| `main` | Módulo 1 + Módulo 2 (producción) |
-| `modelo1` | Solo Módulo 1 — Dashboard |
-| `modelo2` | Módulo 2 — Sala de Reunión WebRTC |
+| `startSharing` | Valida exclusividad por sala → emite `userStartedSharing` a todos → registra log |
+| `stopSharing` | Limpia estado → emite `userStoppedSharing` → cierra log |
+| `getSharingStatus` | Responde con quién comparte actualmente |
+
+| Evento (emite) | Descripción |
+|---|---|
+| `userStartedSharing` | Broadcast `{ userId, userName, roomId, timestamp }` |
+| `userStoppedSharing` | Broadcast al detener o al desconectarse |
+| `sharingStatus` | Al conectarse, informa si alguien ya comparte |
+
+**`MeetingLogService`** + **tabla `meeting_logs`**
+- `logShareStarted()` → inserta registro con `event_type = 'share_started'`
+- `logShareStopped()` → actualiza `stopped_at`, calcula duración automática
+- Columna `duration_sec` generada por PostgreSQL (`EXTRACT EPOCH`)
+- Vista `v_sharing_stats` para analítica por usuario
+- `GET /meeting-logs/user/:userId` → historial de sesiones
+
+### Flujo completo de compartición
+
+```
+Usuario hace clic en "Share"
+  → Abre ShareScreenModalComponent
+  → Selecciona fuente + opciones (audio, videoclip)
+  → Clic en "COMPARTIR AHORA"
+  → ScreenShareService.startCapture() → getDisplayMedia()
+  → Browser muestra selector nativo de pantalla
+  → MediaStream listo → MeetingRoomComponent.onShareStarted(stream)
+  → Stream en <video> + replaceTrackInSender(RTCPeerConnection)
+  → MeetingSocketService.emitStartSharing() → Socket.IO → servidor
+  → MeetingGateway.handleStartSharing() → MeetingLogService.logShareStarted()
+  → server.emit('userStartedSharing') → todos los participantes
+  → Otros ven banner "X está compartiendo pantalla"
+
+Usuario hace clic en "Detener" (o cierra el picker nativo del browser)
+  → ScreenShareService.stopCapture() → track.stop()
+  → sharingStopped$ → MeetingSocketService.emitStopSharing()
+  → MeetingGateway.handleStopSharing() → MeetingLogService.logShareStopped()
+  → server.emit('userStoppedSharing') → banners desaparecen
+```
+
+---
+
+## Guía de estilo
+
+```
+Dashboard:  bg-[#1d2022]  |  border border-white/5  |  text-gray-400
+Modal:      bg-[#131313]  |  border border-white/10  |  rounded-3xl
+Sala:       bg-[#101415]
+Botón Entrar:    bg-[#0055ff] hover:bg-[#0044cc]  text-white  rounded-lg   px-6 py-2
+Botón Compartir: bg-white     hover:bg-gray-200    text-black  rounded-xl  px-8 py-3
+```
