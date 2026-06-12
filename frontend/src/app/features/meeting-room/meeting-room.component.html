@@ -1,0 +1,153 @@
+<div class="flex flex-col h-full bg-[#101415] overflow-hidden">
+
+  <!-- ── Barra superior ── -->
+  <header class="flex items-center justify-between px-6 py-3 border-b border-white/5 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-lg bg-[#1d2022] border border-white/10 flex items-center justify-center">
+        <span class="text-white text-xs font-bold">▲</span>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-white">Lead Meet</p>
+        <p class="text-[11px] text-gray-500">Sala: {{ roomId }}</p>
+      </div>
+    </div>
+
+    <!-- Indicador de compartición de otro participante -->
+    <div *ngIf="sharingParticipantName"
+      class="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5">
+      <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+      <span class="text-xs text-blue-300 font-medium">
+        {{ sharingParticipantName }} está compartiendo pantalla
+      </span>
+    </div>
+
+    <!-- Estado propio de compartición -->
+    <div *ngIf="isSharing && !sharingParticipantName"
+      class="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-full px-4 py-1.5">
+      <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+      <span class="text-xs text-green-300 font-medium">Compartiendo tu pantalla</span>
+      <button (click)="stopSharing()"
+        class="ml-2 text-[10px] text-red-400 hover:text-red-300 font-semibold transition-colors">
+        DETENER
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Área de video ── -->
+  <div class="flex-1 relative overflow-hidden">
+
+    <!-- Video pantalla compartida (ocupa todo el espacio) -->
+    <video
+      #screenVideo
+      *ngIf="isSharing"
+      autoplay
+      playsinline
+      class="w-full h-full object-contain bg-black"
+    ></video>
+
+    <!-- Estado vacío cuando no hay nadie compartiendo -->
+    <div *ngIf="!isSharing"
+      class="flex items-center justify-center h-full">
+      <div class="text-center">
+        <div class="w-16 h-16 rounded-2xl bg-[#1d2022] border border-white/5 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1"/>
+          </svg>
+        </div>
+        <p class="text-gray-400 text-sm font-medium">Nadie está compartiendo pantalla</p>
+        <p class="text-gray-600 text-xs mt-1">Usa el botón <span class="text-gray-400">Share</span> para comenzar</p>
+      </div>
+    </div>
+
+    <!-- Video de cámara local (esquina inferior derecha) -->
+    <div class="absolute bottom-4 right-4 w-40 aspect-video rounded-xl overflow-hidden border border-white/10 shadow-xl bg-[#1d2022]">
+      <video
+        #localVideo
+        autoplay
+        playsinline
+        muted
+        class="w-full h-full object-cover"
+        [class.opacity-0]="!isCameraOn"
+      ></video>
+      <!-- Placeholder cuando la cámara está apagada -->
+      <div *ngIf="!isCameraOn"
+        class="absolute inset-0 flex items-center justify-center bg-[#1d2022]">
+        <div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white">
+          RM
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Barra de controles flotante ── -->
+  <footer class="flex items-center justify-center gap-2 py-4 border-t border-white/5 shrink-0 bg-[#101415]">
+
+    <!-- Micrófono -->
+    <button (click)="toggleMic()"
+      class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors"
+      [ngClass]="isMicOn ? 'hover:bg-white/5 text-gray-300' : 'bg-red-500/15 text-red-400'">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path *ngIf="isMicOn" stroke-linecap="round" stroke-linejoin="round"
+          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z"/>
+        <path *ngIf="!isMicOn" stroke-linecap="round" stroke-linejoin="round"
+          d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+      </svg>
+      <span class="text-[10px] font-medium">{{ isMicOn ? 'Mic' : 'Mic off' }}</span>
+    </button>
+
+    <!-- Cámara -->
+    <button (click)="toggleCamera()"
+      class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors"
+      [ngClass]="isCameraOn ? 'hover:bg-white/5 text-gray-300' : 'bg-red-500/15 text-red-400'">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path *ngIf="isCameraOn" stroke-linecap="round" stroke-linejoin="round"
+          d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        <path *ngIf="!isCameraOn" stroke-linecap="round" stroke-linejoin="round"
+          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+      </svg>
+      <span class="text-[10px] font-medium">{{ isCameraOn ? 'Cámara' : 'Sin cám.' }}</span>
+    </button>
+
+    <!-- Compartir pantalla -->
+    <button (click)="isSharing ? stopSharing() : openShareModal()"
+      class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors"
+      [ngClass]="isSharing
+        ? 'bg-[#0055ff]/20 text-[#4d8fff] border border-[#0055ff]/30'
+        : 'hover:bg-white/5 text-gray-300'">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+      </svg>
+      <span class="text-[10px] font-medium">{{ isSharing ? 'Detener' : 'Share' }}</span>
+    </button>
+
+    <!-- Chat (placeholder) -->
+    <button class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl hover:bg-white/5 text-gray-300 transition-colors">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+      <span class="text-[10px] font-medium">Chat</span>
+    </button>
+
+    <!-- Colgar -->
+    <button
+      class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors ml-3">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z"/>
+      </svg>
+      <span class="text-[10px] font-medium">Colgar</span>
+    </button>
+  </footer>
+
+  <!-- ── Modal de compartir pantalla ── -->
+  <app-share-screen-modal
+    [isOpen]="isModalOpen"
+    (shareStarted)="onShareStarted($event)"
+    (cancelled)="closeShareModal()"
+    (shareStopped)="stopSharing()"
+  ></app-share-screen-modal>
+
+</div>
