@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WsJwtGuard } from './ws-jwt.guard';
+import { CryptoService } from './crypto.service';
 
 @Module({
   imports: [
+    PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -14,7 +17,7 @@ import { WsJwtGuard } from './ws-jwt.guard';
       inject: [ConfigService],
     }),
   ],
-  providers: [WsJwtGuard],
-  exports: [JwtModule, WsJwtGuard],
+  providers: [WsJwtGuard, CryptoService],
+  exports: [JwtModule, WsJwtGuard, CryptoService],
 })
 export class AuthModule {}
