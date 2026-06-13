@@ -8,7 +8,7 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter;
 
-  constructor(private config: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -19,9 +19,26 @@ export class MailService {
   }
 
   async sendOtp(to: string, fullName: string, code: string): Promise<void> {
-    const subject = 'Tu código de verificación — Lead Meet';
-    const html = this.buildOtpEmail(fullName, code);
+    await this.send(to, 'Tu código de verificación — Lead Meet', this.buildEmail(
+      fullName,
+      'Verificación de cuenta',
+      `Hola <strong style="color:#e5e7eb;">${fullName}</strong>, usa este código para activar tu cuenta.`,
+      code,
+      'Si no creaste esta cuenta, ignora este correo.',
+    ));
+  }
 
+  async sendLoginOtp(to: string, fullName: string, code: string): Promise<void> {
+    await this.send(to, 'Código de acceso — Lead Meet', this.buildEmail(
+      fullName,
+      'Verificación de inicio de sesión',
+      `Hola <strong style="color:#e5e7eb;">${fullName}</strong>, alguien está intentando iniciar sesión en tu cuenta. Usa este código para confirmar que eres tú.`,
+      code,
+      'Este código expira en <strong style="color:#9ca3af;">5 minutos</strong>. Si no fuiste tú, cambia tu contraseña.',
+    ));
+  }
+
+  private async send(to: string, subject: string, html: string): Promise<void> {
     try {
       await this.transporter.sendMail({
         from: `"Lead Meet" <${this.config.get<string>('MAIL_USER')}>`,
@@ -29,14 +46,14 @@ export class MailService {
         subject,
         html,
       });
-      this.logger.log(`OTP enviado a ${to}`);
+      this.logger.log(`Correo enviado a ${to}`);
     } catch (err) {
-      this.logger.error(`Error enviando OTP a ${to}: ${(err as Error).message}`);
-      throw new Error('No se pudo enviar el correo de verificación. Intenta de nuevo.');
+      this.logger.error(`Error enviando correo a ${to}: ${(err as Error).message}`);
+      throw new Error('No se pudo enviar el correo. Intenta de nuevo.');
     }
   }
 
-  private buildOtpEmail(fullName: string, code: string): string {
+  private buildEmail(fullName: string, title: string, subtitle: string, code: string, footer: string): string {
     return `
       <!DOCTYPE html>
       <html lang="es">
@@ -53,10 +70,10 @@ export class MailService {
                 </div>
               </td></tr>
               <tr><td style="color:#ffffff;font-size:22px;font-weight:700;text-align:center;padding-bottom:8px;">
-                Verificación de cuenta
+                ${title}
               </td></tr>
               <tr><td style="color:#9ca3af;font-size:14px;text-align:center;padding-bottom:32px;">
-                Hola <strong style="color:#e5e7eb;">${fullName}</strong>, usa este código para verificar tu cuenta.
+                ${subtitle}
               </td></tr>
               <tr><td align="center" style="padding-bottom:32px;">
                 <div style="display:inline-block;background:#1d2022;border:1px solid rgba(0,85,255,0.4);
@@ -65,8 +82,7 @@ export class MailService {
                 </div>
               </td></tr>
               <tr><td style="color:#6b7280;font-size:12px;text-align:center;padding-bottom:24px;">
-                Este código expira en <strong style="color:#9ca3af;">5 minutos</strong>.
-                Si no solicitaste esta cuenta, ignora este correo.
+                ${footer}
               </td></tr>
               <tr><td style="border-top:1px solid rgba(255,255,255,0.05);padding-top:24px;">
                 <p style="color:#4b5563;font-size:11px;text-align:center;margin:0;">

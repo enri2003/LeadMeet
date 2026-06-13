@@ -31,6 +31,13 @@ export class AuthController {
     return this.authSvc.verifyOtp(dto);
   }
 
+  @Post('verify-login-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verificar OTP de inicio de sesión (2FA)' })
+  verifyLoginOtp(@Body() dto: VerifyOtpDto) {
+    return this.authSvc.verifyLoginOtp(dto);
+  }
+
   @Post('resend-otp')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reenviar código OTP al correo del usuario' })

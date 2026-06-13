@@ -34,10 +34,14 @@ const SESSION_KEY = 'lm_session';
 export class AuthService {
   private readonly base = `${environment.apiUrl}/auth`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private readonly http: HttpClient) {}
 
-  login(email: string, password: string): Observable<SessionUser> {
-    return this.http.post<SessionUser>(`${this.base}/login`, { email, password }).pipe(
+  login(email: string, password: string): Observable<{ message: string; email: string }> {
+    return this.http.post<{ message: string; email: string }>(`${this.base}/login`, { email, password });
+  }
+
+  verifyLoginOtp(email: string, code: string): Observable<SessionUser> {
+    return this.http.post<SessionUser>(`${this.base}/verify-login-otp`, { email, code }).pipe(
       tap(user => localStorage.setItem(SESSION_KEY, JSON.stringify(user))),
     );
   }

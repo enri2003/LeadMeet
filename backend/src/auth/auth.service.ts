@@ -31,7 +31,7 @@ export class AuthService {
     private readonly mailSvc: MailService,
   ) {}
 
-  async login(dto: LoginDto): Promise<SessionUser> {
+  async login(dto: LoginDto): Promise<{ message: string; email: string }> {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
 
     if (!user || !user.passwordHash) {
@@ -43,6 +43,22 @@ export class AuthService {
 
     const valid = await this.cryptoSvc.comparePassword(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas.');
+
+    const { code, expiresAt } = this.cryptoSvc.generateOtp();
+    await this.userRepo.update(user.id, { otpCode: code, otpExpiresAt: expiresAt });
+    await this.mailSvc.sendLoginOtp(user.email, user.fullName ?? user.name, code);
+
+    return { message: 'Código de verificación enviado a tu correo.', email: user.email };
+  }
+
+  async verifyLoginOtp(dto: VerifyOtpDto): Promise<SessionUser> {
+    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
+
+    const valid = this.cryptoSvc.isOtpValid(dto.code, user.otpCode, user.otpExpiresAt);
+    if (!valid) throw new UnauthorizedException('Código incorrecto o expirado. Inténtalo de nuevo.');
+
+    await this.userRepo.update(user.id, { otpCode: null, otpExpiresAt: null });
 
     return {
       userId: user.id,
