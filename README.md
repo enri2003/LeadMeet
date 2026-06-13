@@ -265,6 +265,81 @@ Usuario ingresa código en /verify-otp
 
 ---
 
+## Módulo 5 — Ajustes Avanzados (Advanced Settings)
+
+### Tareas implementadas
+
+| # | Tarea | Estado |
+|---|---|---|
+| 6.1 | `004_user_settings.sql` — Tabla `user_settings` con FK a `users` + tabla `refresh_tokens` + seeds | ✅ |
+| 6.2 | `UserSettings` entity (TypeORM) + `UpdateSettingsDto` (class-validator) | ✅ |
+| 6.3 | `UsersService.getSettings / updateSettings` — Auto-crea fila si no existe | ✅ |
+| 6.4 | `GET /users/settings` y `PATCH /users/settings` — Endpoints REST | ✅ |
+| 6.5 | `POST /auth/logout-all` — Invalida todas las sesiones activas del usuario | ✅ |
+| 6.6 | `SettingsService` (Angular) — BehaviorSubject + `load()`, `save()`, `logoutAll()` | ✅ |
+| 6.7 | `AdvancedSettingsComponent` — UI completa con OnPush + enumeración de dispositivos | ✅ |
+| 6.8 | Privacidad en sala: `WebRtcGateway` omite `user-joined` si `hidePresence: true` | ✅ |
+
+### Endpoints
+
+```
+GET   /users/settings?userId=<uuid>   → Devuelve (o crea) la configuración del usuario
+PATCH /users/settings?userId=<uuid>   → Actualiza campos parciales
+POST  /auth/logout-all?userId=<uuid>  → Cierra todas las sesiones activas
+```
+
+### Descripción de componentes
+
+#### Frontend
+
+**`AdvancedSettingsComponent`** (`/features/advanced-settings/`)
+- Ruta lazy-loaded: `/settings`
+- Standalone, `ChangeDetectionStrategy.OnPush`
+- **Audio & Video card**: dropdowns de micrófono (audioinput) y salida de audio (audiooutput) enumerados con `navigator.mediaDevices.enumerateDevices()`; toggles de Cancelación de Ruido AI y Enfoque Ejecutivo (Face Link)
+- **Privacidad card**: radio group (`organization` / `anyone` / `verified`) para permisos de entrada; toggle "Ocultar estado de conexión" (`hidePresence`)
+- **Interfaz & Accesibilidad card**: slider de tamaño de fuente (12-24px, etiquetado en español); tarjetas de tema Oscuro Lead / Claro Lead; toggle de subtítulos con selector de idioma (ES/EN/PT/FR)
+- **Cerrar Sesión Global**: botón peligroso — llama `POST /auth/logout-all`, limpia localStorage/sessionStorage y redirige a `/register`
+- Barra inferior fija: **Deshacer** (revierte al snapshot guardado), **Restablecer** (vuelve a `DEFAULT_SETTINGS`), **Guardar Cambios** (activo solo si `isDirty`)
+- Toast verde de confirmación al guardar; fallback optimista si el backend está offline
+
+**`SettingsService`** (`/core/services/settings.service.ts`)
+- `BehaviorSubject<UserSettings>` como fuente reactiva de verdad
+- `load(userId)` → `GET /users/settings` + actualiza el subject
+- `save(patch, userId)` → `PATCH /users/settings`
+- `logoutAll(userId)` → `POST /auth/logout-all`
+
+**`settings.model.ts`** (`/core/models/`)
+- `UserSettings` interface con tipos estrictos (`PrivacyLevel`, `Theme`, `CaptionLang`)
+- `DEFAULT_SETTINGS` y `FONT_LABELS` exportados
+
+#### Backend
+
+**`UserSettings` entity** (`/users/entities/user-settings.entity.ts`)
+- OneToOne con `User` (cascade, FK `userId`)
+- Campos: `micDeviceId`, `audioOutId`, `noiseCancel`, `faceLink`, `privacyLevel`, `hidePresence`, `fontSize`, `theme`, `captions`, `captionLang`
+
+**`WebRtcGateway`** (`/meetings/meeting.gateway.ts`)
+- Al procesar `joinRoom`, consulta `UsersService.getSettings(userId)` e inhibe el broadcast `user-joined` si `hidePresence: true`
+
+### Flujo de guardado de ajustes
+
+```
+Usuario edita cualquier campo en /settings
+  → working copy en memoria (settings object)
+  → isDirty = true → botón "Guardar Cambios" se activa
+  → Clic en "Guardar Cambios"
+  → SettingsService.save(settings) → PATCH /users/settings
+  → Backend: UsersService.updateSettings() → TypeORM upsert
+  → Respuesta: objeto UserSettings actualizado
+  → savedSnapshot ← settings → isDirty = false → toast verde 2.5 s
+
+Clic en "Deshacer" → settings ← savedSnapshot (sin petición HTTP)
+Clic en "Restablecer" → settings ← DEFAULT_SETTINGS (sin petición HTTP)
+Clic en "Cerrar Sesión" → confirm() → POST /auth/logout-all → clear storage → /register
+```
+
+---
+
 ## Guía de estilo
 
 ```

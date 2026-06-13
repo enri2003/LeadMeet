@@ -29,5 +29,12 @@ export const routes: Routes = [
       ),
   },
   { path: 'room/:roomId', component: MeetingRoomComponent },
+  {
+    path: 'settings',
+    loadComponent: () =>
+      import('./features/advanced-settings/advanced-settings.component').then(
+        (m) => m.AdvancedSettingsComponent,
+      ),
+  },
   { path: '**', redirectTo: '' },
 ];

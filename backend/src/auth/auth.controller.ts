@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -28,5 +28,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Reenviar código OTP al correo del usuario' })
   resendOtp(@Body() body: { email: string }) {
     return this.authSvc.resendOtp(body.email);
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cerrar sesión en todos los dispositivos (Task 6.5)' })
+  logoutAll(@Query('userId') userId: string) {
+    return this.authSvc.logoutAll(userId);
   }
 }

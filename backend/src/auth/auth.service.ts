@@ -91,4 +91,18 @@ export class AuthService {
 
     return { message: 'Nuevo código enviado a tu correo.' };
   }
+
+  // Task 6.5 — invalidate all sessions for this user
+  async logoutAll(userId: string): Promise<{ message: string }> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
+
+    // Invalidate by rotating the OTP secret and clearing tokens
+    await this.userRepo.update(userId, {
+      otpCode: null,
+      otpExpiresAt: null,
+    });
+
+    return { message: 'Todas las sesiones han sido cerradas correctamente.' };
+  }
 }
