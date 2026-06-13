@@ -340,6 +340,84 @@ Clic en "Cerrar Sesión" → confirm() → POST /auth/logout-all → clear stora
 
 ---
 
+## Módulo 6 — Mis Reuniones (My Meetings)
+
+### Tareas implementadas
+
+| # | Tarea | Estado |
+|---|---|---|
+| 3.1 | `MyMeetingsComponent` — Tabs Próximas/Pasadas/Archivadas + filtros rápidos por fecha y tipo | ✅ |
+| 3.2 | `LiveMeetingCardComponent` — Tarjeta EN VIVO con badge pulsante + tiempo transcurrido + botón Entrar | ✅ |
+| 3.3 | `PastMeetingsListComponent` — Tabla con columnas Reunión/Fecha/Duración/Participantes/Acción + empty states | ✅ |
+| 3.4 | `GET /meetings` — Endpoint con filtros `status`, `startDate`, `endDate` y cálculo de `durationMinutes` | ✅ |
+| 3.5 | `005_meetings_archive.sql` + `PATCH /meetings/:id/archive` — Estado archived con validación de host | ✅ |
+
+### Endpoints
+
+```
+GET   /meetings?userId=<uuid>&status=upcoming|live|past|archived&startDate=&endDate=
+PATCH /meetings/:id/archive?userId=<uuid>   → 403 si no es el host
+```
+
+### Descripción de componentes
+
+#### Frontend
+
+**`MyMeetingsComponent`** (`/features/my-meetings/`)
+- Ruta lazy-loaded: `/meetings`
+- Barra de filtros: `bg-[#1d2022] border border-white/5 rounded-2xl p-4`
+- 3 tabs con toggle visual (blanco activo / transparente inactivo): Próximas · Pasadas · Archivadas
+- Filtros rápidos: "Esta semana" / "Este mes" (calculan startDate/endDate automáticamente)
+- Inputs de fecha y dropdown de tipo de reunión
+- Skeleton loader mientras carga (`animate-pulse`)
+- Tab "Próximas": tarjetas individuales con ícono de tipo, fecha/hora, badge "Programada", botón Entrar
+- Tabs "Pasadas" / "Archivadas": delega a `PastMeetingsListComponent`
+
+**`LiveMeetingCardComponent`** (`/features/my-meetings/components/live-meeting-card/`)
+- Se muestra siempre en la parte superior si hay una reunión activa (`GET /meetings?status=live`)
+- Estilo: `bg-gradient-to-br from-[#1d2022] to-[#131313] border border-white/10 rounded-3xl p-8`
+- Badge **EN VIVO** con punto rojo pulsante (`animate-ping`)
+- Muestra tiempo transcurrido en minutos/horas
+- Avatares de participantes apilados (max 4 + contador +N)
+- Botón **Entrar a la Reunión** `bg-[#0055ff]` → navega a `/meeting/:roomId`
+
+**`PastMeetingsListComponent`** (`/features/my-meetings/components/past-meetings-list/`)
+- `@Input() meetings`: lista de `MeetingDto`
+- `@Input() showArchiveButton`: muestra botón Archivar solo en tab Pasadas
+- `@Output() archive`: emite el id cuando el host quiere archivar
+- Columnas: **Reunión** (nombre + badge de tipo coloreado) | **Fecha** | **Duración** (formateada como "1h 30min") | **Participantes** | **Acción** (Resumen + Archivar)
+- Empty state elegante con ícono y mensajes contextuales por tab
+
+**`MeetingsApiService`** (`/core/services/meetings-api.service.ts`)
+- `getMeetings(filter, startDate?, endDate?)` → `GET /meetings`
+- `getLiveMeeting()` → filtra por `status=live`, devuelve el primero o `null`
+- `archiveMeeting(id)` → `PATCH /meetings/:id/archive`
+
+#### Backend
+
+**`MeetingsController`** (`/backend/src/meetings/meetings.controller.ts`)
+- `GET /meetings` → `MeetingsService.getMeetings(userId, opts)`
+- `PATCH /meetings/:id/archive` → `MeetingsService.archiveMeeting(id, requesterId)`
+
+**`MeetingsService`** — nuevos métodos (Tasks 3.4, 3.5)
+- `getMeetings()`: QueryBuilder con switch por status (upcoming=scheduled+futuro, live=scheduled+ahora, past=completed, archived=archived), rango de fechas, calcula `durationMinutes`
+- `archiveMeeting()`: lanza `NotFoundException` si no existe, `ForbiddenException` si no es el host (`createdById`)
+
+### Flujo de archivado
+
+```
+Usuario en tab "Pasadas"
+  → Ve lista con botón "Archivar" en cada fila
+  → Clic en "Archivar"
+  → MeetingsApiService.archiveMeeting(id) → PATCH /meetings/:id/archive?userId=...
+  → Backend: verifica meeting existe + requesterId === createdById
+  → meeting.status = 'archived' → TypeORM save
+  → Frontend: recarga la tab → reunión desaparece de "Pasadas"
+  → Aparece en tab "Archivadas"
+```
+
+---
+
 ## Guía de estilo
 
 ```
