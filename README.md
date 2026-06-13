@@ -504,28 +504,29 @@ Usuario escribe en el textarea
 
 ---
 
-## Módulo 8 — Auth Flow (Login + Guards)
+## Ajustes — Auth Flow (Login + Guards)
 
-**Rama:** `modelo8` | **Archivos clave:** `backend/src/auth/`, `frontend/src/app/features/auth/login/`, `frontend/src/app/core/guards/`
+**Archivos clave:** `backend/src/auth/`, `frontend/src/app/features/auth/login/`, `frontend/src/app/core/guards/`
 
 ### Resumen
 
-Módulo de autenticación completo: página de inicio de sesión premium con diseño split-panel exclusivo para Lead Meet, endpoint de login en el backend con validación bcrypt, gestión de sesión en localStorage y rutas protegidas con guards funcionales de Angular 17.
+Ajustes de autenticación aplicados sobre `main`: página de inicio de sesión premium con diseño split-panel exclusivo para Lead Meet, endpoint `POST /auth/login` en el backend con validación bcrypt, gestión de sesión en localStorage y rutas protegidas con guards funcionales de Angular 17.
 
-### Tasks
+### Cambios aplicados
 
-| # | Descripción | Archivos |
-|---|-------------|---------|
-| 1.1 | Backend: `POST /auth/login` con bcrypt | `auth.controller.ts`, `auth.service.ts`, `login.dto.ts` |
-| 1.2 | Frontend: `AuthService.login()` + gestión de sesión localStorage | `core/services/auth/auth.service.ts` |
-| 1.3 | Guards: `authGuard` + `guestGuard` (`CanActivateFn`) | `core/guards/auth.guard.ts` |
-| 1.4 | `LoginComponent` — diseño split-panel ejecutivo | `features/auth/login/` |
-| 1.5 | Rutas protegidas — todas las rutas con guards | `app.routes.ts` |
+| Archivo | Descripción |
+|---------|-------------|
+| `backend/src/auth/dto/login.dto.ts` | DTO con `@IsEmail()` + `@MinLength(8)` |
+| `backend/src/auth/auth.service.ts` | Método `login()` con bcrypt via `CryptoService` |
+| `backend/src/auth/auth.controller.ts` | `POST /auth/login` → `HttpCode 200` |
+| `frontend/src/app/core/services/auth/auth.service.ts` | `login()`, `logout()`, `getSession()`, `isAuthenticated()` + localStorage |
+| `frontend/src/app/core/guards/auth.guard.ts` | `authGuard` + `guestGuard` (`CanActivateFn`) |
+| `frontend/src/app/features/auth/login/login.component.*` | `LoginComponent` split-panel ejecutivo |
+| `frontend/src/app/app.routes.ts` | Todas las rutas protegidas con guards |
 
 ### Arquitectura
 
-#### Backend — `POST /auth/login`
-
+**Backend — `POST /auth/login`**
 ```
 LoginDto { email, password }
   → AuthService.login()
@@ -534,64 +535,22 @@ LoginDto { email, password }
   → returns SessionUser { userId, name, fullName, email, role, avatarUrl }
 ```
 
-**`LoginDto`** (`backend/src/auth/dto/login.dto.ts`)
-- `@IsEmail()` email
-- `@IsString() @MinLength(8)` password
-
-**`AuthService.login()`**
-- Lanza `UnauthorizedException('Credenciales inválidas.')` si usuario no existe o password incorrecto
-- Lanza `UnauthorizedException('Cuenta no verificada.')` si `isVerified === false`
-- Devuelve `SessionUser` (sin exponer `passwordHash`)
-
-#### Frontend
-
-**`AuthService`** (`core/services/auth/auth.service.ts`)
-- `login(email, password)` → `POST /auth/login`, guarda sesión en `localStorage['lm_session']` via `tap()`
-- `logout()` → elimina `localStorage['lm_session']`
-- `getSession()` → parsea y devuelve `SessionUser | null`
-- `isAuthenticated()` → `!!getSession()`
-
-**Guards** (`core/guards/auth.guard.ts`)
+**Guards**
 - `authGuard`: si no autenticado → redirige a `/login`
-- `guestGuard`: si ya autenticado → redirige a `/` (evita ver login/register si ya está logueado)
+- `guestGuard`: si ya autenticado → redirige a `/` (evita ver login/register con sesión activa)
 
 **`LoginComponent`** — diseño split-panel
-- Panel izquierdo (58%): fondo oscuro `#080b0d`, patrón de cuadrícula SVG, orbes de luz azul, logo Lead Meet, headline grande, 3 tarjetas de características, estadísticas en footer
-- Panel derecho (42%): formulario en `#101415`, campos email + password (con toggle mostrar/ocultar), mensaje de error del servidor, botón "Entrar al Portal", links a registro y verificación OTP
-
-**Rutas protegidas**
-```typescript
-// Solo usuarios NO autenticados
-{ path: 'login',    canActivate: [guestGuard], ... }
-{ path: 'register', canActivate: [guestGuard], ... }
-
-// Solo usuarios autenticados
-{ path: '',         canActivate: [authGuard], component: DashboardComponent }
-{ path: 'meetings', canActivate: [authGuard], ... }
-{ path: 'calendar', canActivate: [authGuard], ... }
-{ path: 'settings', canActivate: [authGuard], ... }
-{ path: 'meeting/:roomId', canActivate: [authGuard], ... }
-{ path: 'room/:roomId',    canActivate: [authGuard], ... }
-```
+- Panel izquierdo (58%): fondo `#080b0d`, cuadrícula SVG, orbes azules, logo, headline, 3 tarjetas de características, estadísticas
+- Panel derecho (42%): formulario `#101415`, email + password con toggle, error del servidor, botón "Entrar al Portal"
 
 ### Flujo de autenticación
 
 ```
-Usuario visita cualquier ruta protegida (ej. /)
-  → authGuard.canActivate()
-  → AuthService.isAuthenticated() → false (no hay sesión)
-  → Redirige a /login
-
-Usuario llena formulario y envía
-  → LoginComponent.onSubmit()
-  → AuthService.login(email, password)
-  → POST /auth/login → { userId, name, email, role, ... }
-  → tap(): localStorage.setItem('lm_session', JSON.stringify(user))
+Usuario visita ruta protegida → authGuard → no autenticado → /login
+Usuario envía formulario → POST /auth/login → SessionUser
+  → localStorage['lm_session'] = JSON.stringify(user)
   → Router.navigate(['/']) → Dashboard
-
-Usuario recarga la página
-  → authGuard → AuthService.getSession() → JSON.parse(localStorage['lm_session'])
-  → isAuthenticated() → true → accede normalmente
+Usuario recarga → authGuard → getSession() → autenticado → acceso normal
 ```
 
 ---
