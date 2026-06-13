@@ -3,11 +3,19 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginDto } from './dto/login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authSvc: AuthService) {}
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Iniciar sesión con email y contraseña' })
+  login(@Body() dto: LoginDto) {
+    return this.authSvc.login(dto);
+  }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)

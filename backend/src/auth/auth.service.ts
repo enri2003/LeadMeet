@@ -12,6 +12,16 @@ import { CryptoService } from './crypto.service';
 import { MailService } from './mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { LoginDto } from './dto/login.dto';
+
+export interface SessionUser {
+  userId: string;
+  name: string;
+  fullName: string | null;
+  email: string;
+  role: string;
+  avatarUrl: string | null;
+}
 
 @Injectable()
 export class AuthService {
@@ -20,6 +30,29 @@ export class AuthService {
     private readonly cryptoSvc: CryptoService,
     private readonly mailSvc: MailService,
   ) {}
+
+  async login(dto: LoginDto): Promise<SessionUser> {
+    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedException('Credenciales inválidas.');
+    }
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Cuenta no verificada. Revisa tu correo para activarla.');
+    }
+
+    const valid = await this.cryptoSvc.comparePassword(dto.password, user.passwordHash);
+    if (!valid) throw new UnauthorizedException('Credenciales inválidas.');
+
+    return {
+      userId: user.id,
+      name: user.name,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+    };
+  }
 
   async register(dto: RegisterDto): Promise<{ message: string; userId: string }> {
     const existing = await this.userRepo.findOne({ where: { email: dto.email } });
