@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 export interface RegisterPayload {
@@ -19,11 +19,28 @@ export interface AuthResponse {
   userId?: string;
 }
 
+export interface SessionUser {
+  userId: string;
+  name: string;
+  fullName: string | null;
+  email: string;
+  role: string;
+  avatarUrl: string | null;
+}
+
+const SESSION_KEY = 'lm_session';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly base = `${environment.apiUrl}/auth`;
 
   constructor(private http: HttpClient) {}
+
+  login(email: string, password: string): Observable<SessionUser> {
+    return this.http.post<SessionUser>(`${this.base}/login`, { email, password }).pipe(
+      tap(user => localStorage.setItem(SESSION_KEY, JSON.stringify(user))),
+    );
+  }
 
   register(payload: RegisterPayload): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.base}/register`, payload);
@@ -35,5 +52,18 @@ export class AuthService {
 
   resendOtp(email: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.base}/resend-otp`, { email });
+  }
+
+  logout(): void {
+    localStorage.removeItem(SESSION_KEY);
+  }
+
+  getSession(): SessionUser | null {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as SessionUser) : null;
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.getSession();
   }
 }
