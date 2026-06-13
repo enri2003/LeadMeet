@@ -10,6 +10,7 @@ import {
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MeetingsService } from './meetings.service';
+import { UsersService } from '../users/users.service';
 
 interface RoomParticipant {
   socketId: string;
@@ -28,7 +29,7 @@ interface RoomParticipant {
   },
   namespace: '/meeting',
 })
-export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private readonly logger = new Logger(MeetingGateway.name);
 
@@ -37,7 +38,10 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
   // socketId → roomId  (for cleanup on disconnect)
   private readonly socketToRoom = new Map<string, string>();
 
-  constructor(private readonly meetingsService: MeetingsService) {}
+  constructor(
+    private readonly meetingsService: MeetingsService,
+    private readonly usersService: UsersService,
+  ) {}
 
   handleConnection(client: Socket) {
     this.logger.log(`WS connected: ${client.id}`);
@@ -81,14 +85,19 @@ export class MeetingGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.socketToRoom.set(client.id, roomId);
     await client.join(roomId);
 
+    // Task 6.4 — load privacy settings for this user
+    const settings = await this.usersService.getSettings(userId).catch(() => null);
+
     // Send existing participants to the new joiner so they can initiate offers
     const existingParticipants = Array.from(room.values()).filter(
       (p) => p.socketId !== client.id,
     );
     client.emit('room-state', { participants: existingParticipants, isHost, roomId });
 
-    // Notify others that a new participant has joined
-    client.to(roomId).emit('user-joined', participant);
+    // Task 6.4 — respect hidePresence: skip broadcast if user wants to be invisible
+    if (!settings?.hidePresence) {
+      client.to(roomId).emit('user-joined', participant);
+    }
 
     await this.meetingsService.recordJoin(roomId, userId, participant.joinedAt).catch(() => null);
 

@@ -4,17 +4,20 @@ import { Meeting } from './entities/meeting.entity';
 import { MeetingParticipant } from './entities/meeting-participant.entity';
 import { MeetingLog } from './entities/meeting-log.entity';
 import { MeetingGateway } from './gateway/meeting.gateway';
+import { WebRtcGateway } from './meeting.gateway';
 import { MeetingsService } from './meetings.service';
 import { MeetingLogService } from './services/meeting-log.service';
 import { MeetingLogsController } from './controllers/meeting-logs.controller';
 import { AuthModule } from '../auth/auth.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Meeting, MeetingParticipant, MeetingLog]),
     AuthModule,
+    UsersModule,
   ],
-  providers: [MeetingGateway, MeetingsService, MeetingLogService],
+  providers: [MeetingGateway, WebRtcGateway, MeetingsService, MeetingLogService],
   controllers: [MeetingLogsController],
   exports: [MeetingsService, MeetingLogService],
 })

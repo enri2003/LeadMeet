@@ -4,9 +4,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { MeetingsModule } from './meetings/meetings.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { Meeting } from './meetings/entities/meeting.entity';
 import { MeetingLog } from './meetings/entities/meeting-log.entity';
 import { User } from './users/entities/user.entity';
+import { UserSettings } from './users/entities/user-settings.entity';
 import { MeetingParticipant } from './meetings/entities/meeting-participant.entity';
 
 @Module({
@@ -21,12 +23,13 @@ import { MeetingParticipant } from './meetings/entities/meeting-participant.enti
         database: config.get('DB_NAME'),
         username: config.get('DB_USER'),
         password: config.get('DB_PASSWORD'),
-        entities: [User, Meeting, MeetingParticipant, MeetingLog],
+        entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog],
         synchronize: false,
       }),
       inject: [ConfigService],
     }),
     AuthModule,
+    UsersModule,
     DashboardModule,
     MeetingsModule,
   ],
