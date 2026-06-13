@@ -11,7 +11,13 @@ export const routes: Routes = [
         (m) => m.MyMeetingsComponent,
       ),
   },
-  { path: 'calendar',  component: DashboardComponent },
+  {
+    path: 'calendar',
+    loadComponent: () =>
+      import('./features/executive-calendar/executive-calendar.component').then(
+        (m) => m.ExecutiveCalendarComponent,
+      ),
+  },
   { path: 'profile',   component: DashboardComponent },
   {
     path: 'register',
