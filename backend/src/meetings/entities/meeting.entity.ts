@@ -11,7 +11,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { MeetingParticipant } from './meeting-participant.entity';
 
-export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled';
+export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled' | 'archived';
 export type MeetingType = 'strategy' | 'negotiation' | 'interview' | 'general';
 
 @Entity('meetings')
@@ -25,7 +25,7 @@ export class Meeting {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'enum', enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' })
+  @Column({ type: 'enum', enum: ['scheduled', 'completed', 'cancelled', 'archived'], default: 'scheduled' })
   status: MeetingStatus;
 
   @Column({ type: 'enum', enum: ['strategy', 'negotiation', 'interview', 'general'], default: 'general' })
