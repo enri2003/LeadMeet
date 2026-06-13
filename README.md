@@ -418,6 +418,92 @@ Usuario en tab "Pasadas"
 
 ---
 
+## Módulo 7 — Calendario Ejecutivo (Executive Calendar)
+
+### Tareas implementadas
+
+| # | Tarea | Estado |
+|---|---|---|
+| 3.1 | `ExecutiveCalendarComponent` — Cuadrícula mensual 6×7 con indicadores de color por tipo de reunión | ✅ |
+| 3.2 | `DailyAgendaSidebarComponent` — Panel derecho con lista cronológica + botón "Programar" | ✅ |
+| 3.3 | `QuickNotesComponent` — Área de notas con autoguardado por debounce (800ms) | ✅ |
+| 3.4 | `GET /calendar/events?userId&year&month` — Reuniones agrupadas por día del mes | ✅ |
+| 3.5 | `006_calendar_notes.sql` + `GET|POST /calendar/notes` — Tabla `daily_notes` con UNIQUE(userId, date) | ✅ |
+
+### Endpoints
+
+```
+GET  /calendar/events?userId=<uuid>&year=2026&month=6   → Record<number, CalendarEventItem[]>
+GET  /calendar/notes?userId=<uuid>&date=2026-06-13       → DailyNoteDto | null
+POST /calendar/notes  { userId, date, content }          → DailyNoteDto (upsert)
+```
+
+### Descripción de componentes
+
+#### Frontend
+
+**`ExecutiveCalendarComponent`** (`/features/executive-calendar/`)
+- Ruta lazy-loaded: `/calendar`
+- Standalone, `ChangeDetectionStrategy.OnPush`
+- Layout de 2 columnas: cuadrícula mensual izquierda (flex-1) + sidebar derecha (w-72)
+- Cuadrícula 42 celdas (6 filas × 7 columnas, inicio lunes)
+- Navegación de mes: flechas prev/next recalculan año si cruzan enero/diciembre
+- Celdas: `bg-[#1d2022] border border-white/5 rounded-xl` — activo: `bg-white border-white` — hoy: `border-[#0055ff]/40`
+- Dots de eventos (máx 3 + contador +N): azul=strategy, amarillo=negotiation, morado=interview, gris=general
+- Leyenda de colores en la parte inferior
+- Al seleccionar un día: actualiza `selectedMeetings` desde `monthData[day]` + carga la nota para ese día
+
+**`DailyAgendaSidebarComponent`** (`/components/daily-agenda-sidebar/`)
+- `@Input() selectedDate`, `@Input() meetings`, `@Output() schedule`
+- Muestra fecha seleccionada + badge "Hoy" o conteo de eventos
+- Botón **Programar** `bg-[#0055ff]` navega a `/meetings`
+- Tarjetas `bg-[#1d2022] border border-white/5 rounded-xl p-4` con barra de color vertical izquierda según tipo
+- Muestra: rango horario, título, badge de tipo coloreado, participantes, candado si confidencial
+- Botón **Entrar →** aparece en hover solo para reuniones `scheduled`
+- Empty state con ícono y mensaje contextual
+
+**`QuickNotesComponent`** (`/components/quick-notes/`)
+- `@Input() content`, `@Output() save: EventEmitter<string>`
+- Debounce 800ms: usa `Subject<string>` + `debounceTime(800)` + `takeUntil(destroy$)` de RxJS
+- Textarea sin estilo (`bg-transparent`) integrada en card
+- Indicadores: "Guardando..." mientras pide al API; "✓ Guardado" 2.5s tras éxito
+
+**`CalendarApiService`** (`/core/services/calendar-api.service.ts`)
+- `getEvents(year, month)` → `GET /calendar/events`
+- `getNote(date)` → `GET /calendar/notes` (devuelve `null` si no existe)
+- `upsertNote(date, content)` → `POST /calendar/notes`
+
+#### Backend
+
+**`CalendarService`** (`/backend/src/calendar/`)
+- `getEvents()`: QueryBuilder filtra meetings del mes por `createdById`, ordena ASC, agrupa en `Record<number, CalendarEventItem[]>` por `getDate()`
+- `getNote()`: `findOne({ where: { userId, date } })`
+- `upsertNote()`: find-or-create pattern, luego `save()`
+
+**`DailyNote` entity** — tabla `daily_notes`
+- `UNIQUE(user_id, date)` garantiza una nota por usuario por día
+- `updated_at` trigger reutiliza `update_updated_at()` del schema inicial
+
+### Flujo de notas rápidas
+
+```
+Usuario selecciona un día en la cuadrícula
+  → ExecutiveCalendarComponent.selectDay(date)
+  → CalendarApiService.getNote('2026-06-13') → GET /calendar/notes
+  → Nota cargada en QuickNotesComponent [content]
+
+Usuario escribe en el textarea
+  → QuickNotesComponent.onInput() → noteSubject.next(value)
+  → debounceTime(800ms) — espera a que el usuario pause
+  → save.emit(content)
+  → ExecutiveCalendarComponent.onNoteSave(content)
+  → CalendarApiService.upsertNote('2026-06-13', content) → POST /calendar/notes
+  → Backend: findOne + save (upsert) → UNIQUE(user_id, date) protege duplicados
+  → Indicador "✓ Guardado" aparece 2.5s
+```
+
+---
+
 ## Guía de estilo
 
 ```

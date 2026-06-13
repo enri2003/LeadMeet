@@ -1,0 +1,100 @@
+<!-- DailyAgendaSidebarComponent — Task 3.2 -->
+<div class="flex flex-col gap-4 h-full">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-white font-bold text-sm">{{ dateLabel }}</p>
+      <p *ngIf="isToday" class="text-[#0055ff] text-[10px] font-bold uppercase tracking-widest mt-0.5">Hoy</p>
+      <p *ngIf="!isToday" class="text-white/30 text-[10px] uppercase tracking-widest mt-0.5">
+        {{ meetings.length }} evento{{ meetings.length !== 1 ? 's' : '' }}
+      </p>
+    </div>
+
+    <button (click)="schedule.emit()"
+            class="flex items-center gap-2 bg-[#0055ff] hover:bg-[#0044cc] text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Programar
+    </button>
+  </div>
+
+  <!-- Divider -->
+  <div class="h-px bg-white/5"></div>
+
+  <!-- Empty state -->
+  <div *ngIf="meetings.length === 0"
+       class="flex flex-col items-center justify-center py-8 text-center">
+    <div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-3">
+      <svg class="w-6 h-6 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+    </div>
+    <p class="text-white/30 text-xs font-medium">Sin reuniones este día</p>
+    <p class="text-white/15 text-[10px] mt-0.5">Usa "Programar" para añadir una.</p>
+  </div>
+
+  <!-- Meeting cards — chronological list (Task 3.2) -->
+  <div class="flex flex-col gap-3 overflow-y-auto flex-1 pr-1">
+    <div *ngFor="let m of meetings"
+         class="bg-[#1d2022] border border-white/5 rounded-xl p-4 relative overflow-hidden group hover:border-white/10 transition-all">
+
+      <!-- Type color bar -->
+      <div class="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl" [ngClass]="typeBarColor(m.type)"></div>
+
+      <!-- Time + status -->
+      <div class="flex items-center justify-between mb-2 pl-2">
+        <span class="text-white/40 text-[11px] font-medium tabular-nums">
+          {{ formatTime(m.startTime) }} — {{ formatTime(m.endTime) }}
+        </span>
+        <span *ngIf="m.status === 'scheduled'"
+              class="text-[9px] font-bold uppercase tracking-widest text-[#0055ff]">
+          Programada
+        </span>
+        <span *ngIf="m.status === 'completed'"
+              class="text-[9px] font-bold uppercase tracking-widest text-green-400/70">
+          Completada
+        </span>
+      </div>
+
+      <!-- Title -->
+      <p class="text-white text-sm font-semibold truncate pl-2 mb-1">{{ m.title }}</p>
+
+      <!-- Meta row -->
+      <div class="flex items-center gap-3 pl-2">
+        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              [ngClass]="{
+                'bg-blue-500/15 text-blue-400':     m.type === 'strategy',
+                'bg-yellow-500/15 text-yellow-400': m.type === 'negotiation',
+                'bg-purple-500/15 text-purple-400': m.type === 'interview',
+                'bg-white/10 text-white/40':        m.type === 'general'
+              }">
+          {{ typeLabel(m.type) }}
+        </span>
+
+        <span class="flex items-center gap-1 text-[10px] text-white/30">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          {{ m.participantCount }}
+        </span>
+
+        <span *ngIf="m.isConfidential" class="text-amber-400/60" title="Confidencial">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </span>
+      </div>
+
+      <!-- Enter button (visible on hover, only for scheduled) -->
+      <button *ngIf="m.status === 'scheduled'"
+              (click)="enter(m)"
+              class="mt-3 ml-2 text-[10px] font-bold text-[#0055ff] hover:text-white bg-[#0055ff]/10 hover:bg-[#0055ff] px-3 py-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+        Entrar →
+      </button>
+
+    </div>
+  </div>
+
+</div>
