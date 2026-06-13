@@ -178,6 +178,93 @@ Usuario hace clic en "Detener" (o cierra el picker nativo del browser)
 
 ---
 
+## Módulo 4 — Registro de Cuenta
+
+### Tareas implementadas
+
+| # | Tarea | Estado |
+|---|---|---|
+| 1.1 | `003_auth_users.sql` — Campos `full_name`, `password_hash`, `is_verified`, `otp_code`, `otp_expires_at` en PostgreSQL | ✅ |
+| 1.2 | `CryptoService` — Hashing bcrypt (12 rounds) + generación OTP 6 dígitos con expiración 5 min | ✅ |
+| 1.3 | `SignUpComponent` — Interfaz de registro con validaciones reactivas (Angular + Tailwind) | ✅ |
+| 1.4 | `POST /auth/register` — Endpoint con Nodemailer: hashea contraseña, guarda usuario y envía OTP por correo | ✅ |
+| 1.5 | `OtpVerificationComponent` — 6 inputs individuales + countdown SVG + reenvío de código | ✅ |
+
+### Endpoints
+
+```
+POST /auth/register      → Crea cuenta, envía OTP al correo
+POST /auth/verify-otp    → Verifica código, activa cuenta (is_verified = true)
+POST /auth/resend-otp    → Regenera y reenvía OTP
+```
+
+### Descripción de componentes
+
+#### Frontend
+
+**`SignUpComponent`** (`/features/auth/sign-up/`)
+- Ruta: `/register`
+- Fondo `bg-[#101415]`, card `bg-[#181c1e]`, inputs `bg-[#1d2022] border-white/10 focus:border-[#0055ff]`
+- Formulario reactivo: `fullName` (min 3), `email`, `password` (min 8), `confirmPassword`, `acceptTerms`
+- Validador personalizado `passwordsMatch` a nivel de FormGroup
+- Toggle mostrar/ocultar contraseña en cada campo
+- Checkbox de términos con estilo personalizado azul al marcar
+- Botón **CREAR CUENTA** con spinner durante carga
+- Redirige a `/verify-otp?email=...` tras registro exitoso
+
+**`OtpVerificationComponent`** (`/features/auth/otp-verification/`)
+- Ruta: `/verify-otp?email=...`
+- 6 inputs individuales: navegación con `ArrowLeft/Right`, `Backspace`, soporte de pegado
+- Auto-submit al completar el último dígito
+- Anillo SVG de countdown: 5 min → color azul, expirado → rojo
+- Botón **Reenviar código** visible cuando quedan < 30 s o ya expiró
+- Al verificar con éxito: mensaje verde + redirige a `/login` en 2 s
+
+#### Backend
+
+**`AuthService`** (`/backend/src/auth/`)
+- `register()`: verifica duplicado (409), hashea contraseña, guarda con `is_verified=false`, envía OTP
+- `verifyOtp()`: valida código y expiración, activa cuenta en DB
+- `resendOtp()`: regenera OTP y reenvía correo
+
+**`MailService`** — Nodemailer con Gmail (contraseña de aplicación)
+- Email HTML premium con código OTP resaltado y fondo oscuro `#101415`
+- Configurar en `backend/.env`: `MAIL_USER` y `MAIL_APP_PASSWORD`
+
+**`CryptoService`**
+- `hashPassword(plain)` → bcrypt con 12 salt rounds
+- `generateOtp()` → código 6 dígitos + `expiresAt = NOW + 5 min`
+- `isOtpValid(code, stored, expiresAt)` → valida código y expiración en una sola llamada
+
+### Flujo completo de registro
+
+```
+Usuario entra a /register
+  → Llena formulario (nombre, correo, contraseña)
+  → POST /auth/register
+  → Backend hashea contraseña (bcrypt) + genera OTP
+  → Guarda usuario con is_verified = false
+  → Nodemailer envía email con código OTP
+  → Frontend redirige a /verify-otp?email=...
+
+Usuario ingresa código en /verify-otp
+  → POST /auth/verify-otp { email, code }
+  → Backend valida código y expiración
+  → Actualiza is_verified = true en PostgreSQL
+  → Frontend muestra éxito + redirige a /login
+```
+
+### Manejo de errores
+
+| Código | Situación |
+|---|---|
+| 409 Conflict | Correo ya registrado |
+| 401 Unauthorized | Código OTP incorrecto o expirado |
+| 404 Not Found | Usuario no encontrado |
+| 500 | Error al enviar correo SMTP |
+
+---
+
 ## Guía de estilo
 
 ```
