@@ -8,6 +8,7 @@ import { WebRtcGateway } from './meeting.gateway';
 import { MeetingsService } from './meetings.service';
 import { MeetingLogService } from './services/meeting-log.service';
 import { MeetingLogsController } from './controllers/meeting-logs.controller';
+import { MeetingsController } from './meetings.controller';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 
@@ -18,7 +19,7 @@ import { UsersModule } from '../users/users.module';
     UsersModule,
   ],
   providers: [MeetingGateway, WebRtcGateway, MeetingsService, MeetingLogService],
-  controllers: [MeetingLogsController],
+  controllers: [MeetingLogsController, MeetingsController],
   exports: [MeetingsService, MeetingLogService],
 })
 export class MeetingsModule {}

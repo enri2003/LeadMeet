@@ -4,7 +4,13 @@ import { MeetingRoomComponent } from './features/meeting-room/meeting-room.compo
 
 export const routes: Routes = [
   { path: '',          component: DashboardComponent },
-  { path: 'meetings',  component: DashboardComponent },
+  {
+    path: 'meetings',
+    loadComponent: () =>
+      import('./features/my-meetings/my-meetings.component').then(
+        (m) => m.MyMeetingsComponent,
+      ),
+  },
   { path: 'calendar',  component: DashboardComponent },
   { path: 'profile',   component: DashboardComponent },
   {
