@@ -10,6 +10,8 @@ import { MeetingLog } from './meetings/entities/meeting-log.entity';
 import { User } from './users/entities/user.entity';
 import { UserSettings } from './users/entities/user-settings.entity';
 import { MeetingParticipant } from './meetings/entities/meeting-participant.entity';
+import { CalendarModule } from './calendar/calendar.module';
+import { DailyNote } from './calendar/entities/daily-note.entity';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { MeetingParticipant } from './meetings/entities/meeting-participant.enti
         database: config.get('DB_NAME'),
         username: config.get('DB_USER'),
         password: config.get('DB_PASSWORD'),
-        entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog],
+        entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog, DailyNote],
         synchronize: false,
       }),
       inject: [ConfigService],
@@ -32,6 +34,7 @@ import { MeetingParticipant } from './meetings/entities/meeting-participant.enti
     UsersModule,
     DashboardModule,
     MeetingsModule,
+    CalendarModule,
   ],
 })
 export class AppModule {}
