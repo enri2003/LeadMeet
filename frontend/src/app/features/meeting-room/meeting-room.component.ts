@@ -187,7 +187,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     });
 
     if (joinResult.waiting) {
-      // Participant goes to waiting room — host must admit
       this.isWaiting = true;
       this.refresh();
       return;
@@ -199,6 +198,40 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       return;
     }
 
+    this.refresh();
+  }
+
+  private async rejoinAfterReconnect(): Promise<void> {
+    const prevWaitingRoomEnabled = this.isWaitingRoomEnabled;
+
+    this.peerConnections.forEach((pc) => pc.close());
+    this.peerConnections.clear();
+    this.screenSenders.clear();
+    this.participants = [];
+    this.waitingParticipants = [];
+    this.isWaiting = false;
+    this.isWaitingRoomEnabled = false;
+
+    const joinResult = await this.signaling.joinRoom({
+      roomId: this.roomId,
+      userId: this.sessionUserId,
+      name: this.sessionName,
+    });
+
+    if (joinResult.waiting) {
+      this.isWaiting = true;
+      this.isHost = false;
+      if (this.localParticipant) this.localParticipant.role = 'Participante';
+    } else if (joinResult.success) {
+      this.isHost = joinResult.isHost;
+      if (this.localParticipant) {
+        this.localParticipant.role = joinResult.isHost ? 'Anfitrión' : 'Participante';
+      }
+      if (joinResult.isHost && prevWaitingRoomEnabled) {
+        this.isWaitingRoomEnabled = true;
+        this.signaling.toggleWaitingRoom(this.roomId, true);
+      }
+    }
     this.refresh();
   }
 
@@ -415,6 +448,13 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       this.signaling.onWaitingRoomChanged().subscribe(({ enabled }) => {
         this.isWaitingRoomEnabled = enabled;
         this.refresh();
+      }),
+    );
+
+    // Reconexión automática tras caída del backend
+    this.subs.push(
+      this.signaling.onReconnect().subscribe(() => {
+        this.rejoinAfterReconnect();
       }),
     );
   }

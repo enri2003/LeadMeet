@@ -202,6 +202,14 @@ export class SignalingService implements OnDestroy {
     return this.fromEvent('waiting-room-changed');
   }
 
+  onReconnect(): Observable<void> {
+    return new Observable((obs) => {
+      const handler = () => obs.next();
+      this.socket.io.on('reconnect', handler);
+      return () => this.socket.io.off('reconnect', handler);
+    });
+  }
+
   get socketId(): string {
     return this.socket?.id ?? '';
   }
