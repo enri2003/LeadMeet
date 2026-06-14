@@ -100,8 +100,7 @@
                    focus:outline-none focus:border-[#0055ff] focus:bg-[#1a2035]
                    disabled:opacity-40 disabled:cursor-not-allowed
                    transition-all duration-200 caret-transparent select-none"
-            [class.border-[#0055ff]]="d !== ''"
-            [class.border-red-500]="serverError !== null"
+            [ngClass]="serverError !== null ? 'border-red-500' : (d !== '' ? 'border-[#0055ff]' : '')"
           />
         }
       </div>
@@ -132,30 +131,26 @@
 
       <!-- Reenviar código -->
       <div class="text-center">
-        @if (isExpired || remainingSeconds < 30) {
-          <button
-            type="button"
-            (click)="resend()"
-            [disabled]="isResending"
-            class="text-sm text-[#0055ff] hover:text-blue-400 transition-colors disabled:opacity-50 font-medium">
-            @if (isResending) {
-              <span class="inline-flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-                Enviando...
-              </span>
-            } @else {
-              Reenviar código
-            }
-          </button>
-        } @else {
-          <p class="text-xs text-gray-600">
-            Puedes reenviar el código en
-            <span class="text-gray-400 font-medium">{{ remainingSeconds }}s</span>
-          </p>
-        }
+        <button
+          type="button"
+          (click)="resend()"
+          [disabled]="isResending"
+          class="text-sm text-[#0055ff] hover:text-blue-400 transition-colors disabled:opacity-50 font-medium">
+          @if (isResending) {
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              Enviando...
+            </span>
+          } @else {
+            ¿No llegó? Reenviar código
+          }
+        </button>
+        <p class="text-xs text-gray-600 mt-1.5">
+          Revisa tu carpeta de <span class="text-gray-400">spam</span> si no aparece en la bandeja de entrada.
+        </p>
       </div>
     }
   </div>

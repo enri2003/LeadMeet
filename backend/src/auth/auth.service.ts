@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -25,6 +26,8 @@ export interface SessionUser {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly cryptoSvc: CryptoService,
@@ -101,7 +104,11 @@ export class AuthService {
 
     const saved = await this.userRepo.save(user);
 
-    await this.mailSvc.sendOtp(dto.email, dto.fullName, code);
+    try {
+      await this.mailSvc.sendOtp(dto.email, dto.fullName, code);
+    } catch (err) {
+      this.logger.warn(`SMTP error al registrar ${dto.email}: ${(err as Error).message}`);
+    }
 
     return {
       message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
