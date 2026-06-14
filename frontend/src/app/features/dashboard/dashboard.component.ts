@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { DashboardStats } from '../../core/models/dashboard.model';
 import { DashboardStatsComponent } from './components/dashboard-stats/dashboard-stats.component';
 import { NextMeetingHeroComponent } from './components/next-meeting-hero/next-meeting-hero.component';
@@ -24,6 +25,12 @@ export class DashboardComponent implements OnInit {
   error: string | null = null;
 
   private readonly router = inject(Router);
+  private readonly authSvc = inject(AuthService);
+
+  get userName(): string {
+    const s = this.authSvc.getSession();
+    return s?.fullName || s?.name || 'Usuario';
+  }
 
   constructor(private dashboardService: DashboardService) {}
 

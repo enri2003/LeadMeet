@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs';
 
 import { SignalingService } from '../../core/services/signaling.service';
 import { MediaStreamService } from '../../core/services/media-stream.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { RoomParticipant, ChatMessage } from '../../core/models/meeting-room.model';
 import { VideoTileComponent } from './components/video-tile/video-tile.component';
 import { MeetingControlsComponent } from './components/meeting-controls/meeting-controls.component';
@@ -33,10 +34,20 @@ const ICE_SERVERS: RTCIceServer[] = [
 export class MeetingRoomComponent implements OnInit, OnDestroy {
   private readonly signaling = inject(SignalingService);
   private readonly media = inject(MediaStreamService);
+  private readonly authSvc = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly zone = inject(NgZone);
+
+  private get sessionName(): string {
+    const s = this.authSvc.getSession();
+    return s?.fullName || s?.name || 'Usuario';
+  }
+
+  private get sessionUserId(): string {
+    return this.authSvc.getSession()?.userId ?? 'local-user';
+  }
 
   // ─── Room state ─────────────────────────────────────────────────────────────
   roomId = '';
@@ -93,8 +104,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       const localStream = await this.media.initLocalStream();
       this.localParticipant = {
         socketId: 'local',
-        userId: 'local-user',
-        name: 'Ricardo Mendoza',
+        userId: this.sessionUserId,
+        name: this.sessionName,
         role: 'Anfitrión',
         isMuted: false,
         isCameraOff: false,
@@ -105,8 +116,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     } catch {
       this.localParticipant = {
         socketId: 'local',
-        userId: 'local-user',
-        name: 'Ricardo Mendoza',
+        userId: this.sessionUserId,
+        name: this.sessionName,
         role: 'Anfitrión',
         isMuted: false,
         isCameraOff: true,
@@ -119,8 +130,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
     await this.signaling.joinRoom({
       roomId: this.roomId,
-      userId: 'local-user',
-      name: 'Ricardo Mendoza',
+      userId: this.sessionUserId,
+      name: this.sessionName,
     });
   }
 

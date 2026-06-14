@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/services/auth/auth.service';
 
 interface NavItem {
   label: string;
@@ -15,6 +16,21 @@ interface NavItem {
   templateUrl: './sidebar.component.html',
 })
 export class SidebarComponent {
+  private readonly authSvc = inject(AuthService);
+
+  get displayName(): string {
+    const s = this.authSvc.getSession();
+    return s?.fullName || s?.name || 'Usuario';
+  }
+
+  get displayRole(): string {
+    return this.authSvc.getSession()?.role || '';
+  }
+
+  get initials(): string {
+    const name = this.displayName;
+    return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  }
   navItems: NavItem[] = [
     {
       label: 'Inicio',

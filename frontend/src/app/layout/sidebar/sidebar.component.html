@@ -29,11 +29,11 @@
   <!-- User profile footer -->
   <div class="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors mt-4">
     <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
-      RM
+      {{ initials }}
     </div>
     <div class="min-w-0">
-      <p class="text-sm font-medium text-white truncate">Ricardo Mendoza</p>
-      <p class="text-[11px] text-gray-500 truncate">CEO, Lead Group</p>
+      <p class="text-sm font-medium text-white truncate">{{ displayName }}</p>
+      <p class="text-[11px] text-gray-500 truncate">{{ displayRole }}</p>
     </div>
   </div>
 </aside>
