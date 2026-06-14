@@ -33,9 +33,9 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private readonly logger = new Logger(MeetingGateway.name);
 
-  // roomId → Map<socketId, RoomParticipant>
+ 
   private readonly rooms = new Map<string, Map<string, RoomParticipant>>();
-  // socketId → roomId  (for cleanup on disconnect)
+  
   private readonly socketToRoom = new Map<string, string>();
 
   constructor(

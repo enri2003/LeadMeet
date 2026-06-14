@@ -28,7 +28,7 @@ export class StopSharingDto {
   roomId: string;
 }
 
-/** Payload que se emite a todos los clientes de la sala */
+
 export class SharingBroadcastDto {
   userId: string;
   userName: string;
