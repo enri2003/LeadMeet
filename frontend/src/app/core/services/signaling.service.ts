@@ -2,11 +2,12 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
 import { RoomParticipant, ChatMessage, RoomStatePayload } from '../models/meeting-room.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class SignalingService implements OnDestroy {
   private socket!: Socket;
-  private readonly serverUrl = 'http://localhost:3000';
+  private readonly serverUrl = environment.apiUrl;
 
   connect(token?: string): void {
     if (this.socket?.connected) return;

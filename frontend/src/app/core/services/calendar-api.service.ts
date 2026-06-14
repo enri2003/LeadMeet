@@ -3,11 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { CalendarMonthData, DailyNoteDto } from '../models/calendar.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CalendarApiService {
   private readonly http    = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:3000';
+  private readonly baseUrl = environment.apiUrl;
   private readonly demoId  = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
   getEvents(year: number, month: number): Observable<CalendarMonthData> {
