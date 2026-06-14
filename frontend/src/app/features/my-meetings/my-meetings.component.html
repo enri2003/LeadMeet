@@ -30,10 +30,7 @@
           <button *ngFor="let tab of tabs"
                   (click)="setTab(tab.key)"
                   class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
-                  [class.bg-white]="activeTab === tab.key"
-                  [class.text-black]="activeTab === tab.key"
-                  [class.text-white/50]="activeTab !== tab.key"
-                  [class.hover:text-white]="activeTab !== tab.key">
+                  [ngClass]="activeTab === tab.key ? 'bg-white text-black' : 'text-white/50 hover:text-white'">
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="tab.icon"/>
             </svg>
@@ -55,7 +52,7 @@
         <!-- Date range inputs -->
         <div class="flex items-center gap-2">
           <input type="date" [(ngModel)]="startDate"
-                 (ngModelChange)="loadMeetings && clearDates()"
+                 (ngModelChange)="clearDates()"
                  class="bg-[#252a2c] border border-white/10 rounded-xl px-3 py-1.5 text-white/60 text-xs outline-none focus:border-[#0055ff]/50 transition-colors [color-scheme:dark]"/>
           <span class="text-white/20 text-xs">—</span>
           <input type="date" [(ngModel)]="endDate"

@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: leadmeet_user
       POSTGRES_PASSWORD: leadmeet_pass
     ports:
-      - '5432:5432'
+      - '5588:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/src/database/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql

@@ -28,8 +28,7 @@
   <!-- Rows -->
   <div *ngFor="let m of meetings; let last = last"
        class="grid grid-cols-[2fr_1fr_0.7fr_0.8fr_auto] gap-4 items-center px-6 py-4 hover:bg-white/[0.02] transition-colors"
-       [class.border-b]="!last"
-       [class.border-white/5]="!last">
+       [ngClass]="!last ? 'border-b border-white/5' : ''">
 
     <!-- Meeting name + type -->
     <div class="min-w-0">

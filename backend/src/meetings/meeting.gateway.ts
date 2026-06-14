@@ -365,13 +365,24 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (requester?.role !== 'Anfitrión') return;
     const target = room.get(data.targetSocketId);
     if (!target) return;
+
     room.delete(data.targetSocketId);
     this.socketToRoom.delete(data.targetSocketId);
-    const targetSocket = this.server.sockets.sockets.get(data.targetSocketId);
-    if (targetSocket) targetSocket.leave(data.roomId);
-    this.server.to(data.targetSocketId).emit('you-were-kicked', { by: requester.name });
+
+    // Notify the kicked participant first — get the actual socket object
+    const targetSocket = Array.from(this.server.sockets.sockets.values()).find(
+      (s) => s.id === data.targetSocketId,
+    );
+    if (targetSocket) {
+      targetSocket.emit('you-were-kicked', { by: requester.name });
+      await targetSocket.leave(data.roomId);
+    }
+
+    // Notify remaining participants
     this.server.to(data.roomId).emit('user-left', { socketId: data.targetSocketId });
+
     await this.meetingsService.recordLeave(data.roomId, target.userId, new Date()).catch(() => null);
+    this.logger.log(`${target.name} kicked from room ${data.roomId} by ${requester.name}`);
   }
 
   @SubscribeMessage('mute-all')

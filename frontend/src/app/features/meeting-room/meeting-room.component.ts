@@ -542,6 +542,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.isMuted = this.media.toggleMute();
     if (this.localParticipant) this.localParticipant.isMuted = this.isMuted;
     this.signaling.toggleMute(this.roomId, this.isMuted);
+    // Re-negotiate SDP with all peers to sync audio track state
+    this.renegotiateWithAllPeers();
     this.refresh();
   }
 
@@ -549,7 +551,23 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.isCameraOff = this.media.toggleCamera();
     if (this.localParticipant) this.localParticipant.isCameraOff = this.isCameraOff;
     this.signaling.toggleCamera(this.roomId, this.isCameraOff);
+    // Re-negotiate SDP with all peers to sync video track state
+    this.renegotiateWithAllPeers();
     this.refresh();
+  }
+
+  private async renegotiateWithAllPeers(): Promise<void> {
+    for (const [socketId, pc] of this.peerConnections) {
+      if (pc.signalingState === 'stable') {
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          this.signaling.sendOffer(socketId, offer);
+        } catch (err) {
+          console.warn(`Failed to renegotiate with ${socketId}:`, err);
+        }
+      }
+    }
   }
 
   async onToggleScreenShare(): Promise<void> {
