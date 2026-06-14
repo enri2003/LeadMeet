@@ -33,12 +33,20 @@ export class MeetingControlsComponent {
   @Output() endMeeting = new EventEmitter<void>();
 
   linkCopied = false;
+  showLinkTooltip = false;
+  currentLink = '';
 
   copyInviteLink(): void {
-    navigator.clipboard.writeText(globalThis.location.href).then(() => {
+    this.currentLink = globalThis.location.href;
+    navigator.clipboard.writeText(this.currentLink).then(() => {
       this.linkCopied = true;
+      this.showLinkTooltip = true;
       this.cdr.markForCheck();
-      setTimeout(() => { this.linkCopied = false; this.cdr.markForCheck(); }, 2000);
+      setTimeout(() => {
+        this.linkCopied = false;
+        this.showLinkTooltip = false;
+        this.cdr.markForCheck();
+      }, 4000);
     });
   }
 }

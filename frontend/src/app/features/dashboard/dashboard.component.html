@@ -36,13 +36,13 @@
       </div>
       <div class="flex items-center gap-3">
         <button
-          (click)="joinDemo()"
+          (click)="showJoinModal = true; joinCode = ''"
           class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-xl px-5 py-2.5 transition-colors border border-white/10"
         >
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
           </svg>
-          Unirse a demo
+          Unirse a reunión
         </button>
         <button
           (click)="openNewMeeting()"
@@ -91,6 +91,48 @@
 
   </ng-container>
 </div>
+
+<!-- Modal Unirse a reunión -->
+@if (showJoinModal) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       style="background: rgba(0,0,0,0.7);"
+       (click)="showJoinModal = false">
+    <div class="w-full max-w-sm rounded-2xl p-6"
+         style="background:#181c1e; border:1px solid rgba(255,255,255,0.08);"
+         (click)="$event.stopPropagation()">
+
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold text-white">Unirse a reunión</h2>
+        <button (click)="showJoinModal = false" class="text-white/30 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <p class="text-sm text-white/40 mb-4">Ingresa el código o pega el enlace de la reunión.</p>
+
+      <input
+        [(ngModel)]="joinCode"
+        type="text"
+        placeholder="Código o enlace..."
+        class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none mb-4"
+        style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
+        onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+        onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+        (keyup.enter)="onJoinMeeting()"
+      />
+
+      <button
+        (click)="onJoinMeeting()"
+        [disabled]="!joinCode.trim()"
+        class="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        style="background:#0055ff; color:white;">
+        Entrar a la sala
+      </button>
+    </div>
+  </div>
+}
 
 <!-- Modal Nueva Reunión -->
 @if (showNewMeetingModal) {

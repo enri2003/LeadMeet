@@ -29,6 +29,8 @@ export class DashboardComponent implements OnInit {
   error: string | null = null;
 
   showNewMeetingModal = false;
+  showJoinModal = false;
+  joinCode = '';
   creatingMeeting = false;
   newMeeting = {
     title: '',
@@ -57,8 +59,13 @@ export class DashboardComponent implements OnInit {
 
   constructor(private dashboardService: DashboardService) {}
 
-  joinDemo(): void {
-    this.router.navigate(['/meeting', 'sala-demo']);
+  onJoinMeeting(): void {
+    const raw = this.joinCode.trim();
+    if (!raw) return;
+    // Acepta enlace completo o solo el código
+    const code = raw.includes('/meeting/') ? raw.split('/meeting/').pop()! : raw;
+    this.showJoinModal = false;
+    this.router.navigate(['/meeting', code]);
   }
 
   openNewMeeting(): void {

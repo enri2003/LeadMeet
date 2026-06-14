@@ -1,5 +1,20 @@
+<!-- Enlace copiado tooltip -->
+@if (showLinkTooltip) {
+  <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-50
+              bg-[#1d2022] border border-white/10 rounded-xl px-4 py-3 shadow-2xl
+              flex items-center gap-3 min-w-0 max-w-sm w-max">
+    <svg class="w-4 h-4 text-green-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+    </svg>
+    <div class="min-w-0">
+      <p class="text-[10px] text-white/40 uppercase tracking-widest mb-0.5">Enlace copiado</p>
+      <p class="text-xs text-white/80 truncate max-w-[260px]">{{ currentLink }}</p>
+    </div>
+  </div>
+}
+
 <!-- Floating controls bar — Task 4.3 -->
-<div class="flex items-center gap-3 px-5 py-3
+<div class="relative flex items-center gap-3 px-5 py-3
             bg-[#1d2022]/80 backdrop-blur-xl
             border border-white/10 rounded-2xl shadow-2xl">
 
