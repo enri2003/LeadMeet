@@ -28,12 +28,20 @@ export class SignalingService implements OnDestroy {
     userId: string;
     name: string;
     role?: string;
-  }): Promise<{ success: boolean; isHost: boolean }> {
+  }): Promise<{ success: boolean; isHost: boolean; waiting?: boolean }> {
     return new Promise((resolve) => {
-      this.socket.emit('join-room', data, (res: { success: boolean; isHost: boolean }) =>
+      this.socket.emit('join-room', data, (res: { success: boolean; isHost: boolean; waiting?: boolean }) =>
         resolve(res),
       );
     });
+  }
+
+  admitParticipant(roomId: string, targetSocketId: string): void {
+    this.socket.emit('admit-participant', { roomId, targetSocketId });
+  }
+
+  rejectParticipant(roomId: string, targetSocketId: string): void {
+    this.socket.emit('reject-participant', { roomId, targetSocketId });
   }
 
   leaveRoom(roomId: string): void {
@@ -172,6 +180,26 @@ export class SignalingService implements OnDestroy {
 
   onRoomLockChanged(): Observable<{ locked: boolean }> {
     return this.fromEvent('room-locked');
+  }
+
+  toggleWaitingRoom(roomId: string, enabled: boolean): void {
+    this.socket.emit('toggle-waiting-room', { roomId, enabled });
+  }
+
+  onParticipantWaiting(): Observable<{ socketId: string; userId: string; name: string }> {
+    return this.fromEvent('participant-waiting');
+  }
+
+  onAdmittedToRoom(): Observable<{ participants: Omit<RoomParticipant, 'isActiveSpeaker' | 'stream'>[]; isHost: boolean; roomId: string }> {
+    return this.fromEvent('admitted-to-room');
+  }
+
+  onAdmissionRejected(): Observable<void> {
+    return this.fromEvent('admission-rejected');
+  }
+
+  onWaitingRoomChanged(): Observable<{ enabled: boolean }> {
+    return this.fromEvent('waiting-room-changed');
   }
 
   get socketId(): string {

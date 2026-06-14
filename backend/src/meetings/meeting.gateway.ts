@@ -22,6 +22,12 @@ interface RoomParticipant {
   joinedAt: Date;
 }
 
+interface WaitingEntry {
+  socketId: string;
+  userId: string;
+  name: string;
+}
+
 @WebSocketGateway({
   cors: {
     origin: process.env['CORS_ORIGIN'] ?? 'http://localhost:4200',
@@ -36,6 +42,9 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly rooms = new Map<string, Map<string, RoomParticipant>>();
   private readonly socketToRoom = new Map<string, string>();
   private readonly lockedRooms = new Map<string, boolean>();
+  // Waiting room is OFF by default — host must explicitly enable it
+  private readonly waitingRoomEnabled = new Map<string, boolean>();
+  private readonly waitingRooms = new Map<string, Map<string, WaitingEntry>>();
 
   constructor(
     private readonly meetingsService: MeetingsService,
@@ -51,6 +60,11 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomId = this.socketToRoom.get(client.id);
     if (roomId) {
       await this.removeFromRoom(client, roomId);
+    } else {
+      // Remove from any waiting room they may have been in
+      this.waitingRooms.forEach((waitingRoom) => {
+        waitingRoom.delete(client.id);
+      });
     }
   }
 
@@ -61,7 +75,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { roomId: string; userId: string; name: string; role?: string },
   ) {
-    const { roomId, userId, name, role = 'Participante' } = data;
+    const { roomId, userId, name } = data;
 
     if (!this.rooms.has(roomId)) {
       this.rooms.set(roomId, new Map());
@@ -70,16 +84,37 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = this.rooms.get(roomId)!;
     const isHost = room.size === 0;
 
-    if (!isHost && this.lockedRooms.get(roomId)) {
-      client.emit('join-rejected', { reason: 'La sala está bloqueada por el anfitrión' });
-      return { success: false, isHost: false };
+    if (!isHost) {
+      // Check room lock
+      if (this.lockedRooms.get(roomId)) {
+        client.emit('join-rejected', { reason: 'La sala está bloqueada por el anfitrión' });
+        return { success: false, isHost: false };
+      }
+
+      // Route to waiting room only if the host has enabled it
+      if (this.waitingRoomEnabled.get(roomId)) {
+        if (!this.waitingRooms.has(roomId)) {
+          this.waitingRooms.set(roomId, new Map());
+        }
+        const waiting: WaitingEntry = { socketId: client.id, userId, name };
+        this.waitingRooms.get(roomId)!.set(client.id, waiting);
+
+        const host = [...room.values()].find((p) => p.role === 'Anfitrión');
+        if (host) {
+          this.server.to(host.socketId).emit('participant-waiting', waiting);
+        }
+
+        this.logger.log(`${name} waiting for admission in room ${roomId}`);
+        return { success: false, isHost: false, waiting: true };
+      }
     }
 
+    // ── Join the room directly (first joiner = Anfitrión, rest = Participante) ─
     const participant: RoomParticipant = {
       socketId: client.id,
       userId,
       name,
-      role: isHost ? 'Anfitrión' : role,
+      role: isHost ? 'Anfitrión' : 'Participante',
       isMuted: true,
       isCameraOff: true,
       joinedAt: new Date(),
@@ -89,16 +124,13 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketToRoom.set(client.id, roomId);
     await client.join(roomId);
 
-    // Task 6.4 — load privacy settings for this user
     const settings = await this.usersService.getSettings(userId).catch(() => null);
 
-    // Send existing participants to the new joiner so they can initiate offers
     const existingParticipants = Array.from(room.values()).filter(
       (p) => p.socketId !== client.id,
     );
     client.emit('room-state', { participants: existingParticipants, isHost, roomId });
 
-    // Task 6.4 — respect hidePresence: skip broadcast if user wants to be invisible
     if (!settings?.hidePresence) {
       client.to(roomId).emit('user-joined', participant);
     }
@@ -107,6 +139,89 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log(`${name} joined room ${roomId} (isHost=${isHost})`);
     return { success: true, isHost };
+  }
+
+  @SubscribeMessage('admit-participant')
+  async handleAdmitParticipant(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; targetSocketId: string },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+
+    const waitingRoom = this.waitingRooms.get(data.roomId);
+    const waiting = waitingRoom?.get(data.targetSocketId);
+    if (!waiting) return;
+
+    waitingRoom!.delete(data.targetSocketId);
+
+    const participant: RoomParticipant = {
+      socketId: data.targetSocketId,
+      userId: waiting.userId,
+      name: waiting.name,
+      role: 'Participante',
+      isMuted: true,
+      isCameraOff: true,
+      joinedAt: new Date(),
+    };
+
+    room.set(data.targetSocketId, participant);
+    this.socketToRoom.set(data.targetSocketId, data.roomId);
+
+    const targetSocket = this.server.sockets.sockets.get(data.targetSocketId);
+    if (targetSocket) {
+      await targetSocket.join(data.roomId);
+
+      const existingParticipants = [...room.values()].filter(
+        (p) => p.socketId !== data.targetSocketId,
+      );
+      targetSocket.emit('admitted-to-room', {
+        participants: existingParticipants,
+        isHost: false,
+        roomId: data.roomId,
+      });
+
+      targetSocket.to(data.roomId).emit('user-joined', participant);
+    }
+
+    await this.meetingsService.recordJoin(data.roomId, waiting.userId, new Date()).catch(() => null);
+    this.logger.log(`${waiting.name} admitted to room ${data.roomId}`);
+  }
+
+  @SubscribeMessage('reject-participant')
+  handleRejectParticipant(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; targetSocketId: string },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+
+    const waitingRoom = this.waitingRooms.get(data.roomId);
+    if (waitingRoom?.has(data.targetSocketId)) {
+      const waiting = waitingRoom.get(data.targetSocketId)!;
+      waitingRoom.delete(data.targetSocketId);
+      this.server.to(data.targetSocketId).emit('admission-rejected');
+      this.logger.log(`${waiting.name} rejected from room ${data.roomId}`);
+    }
+  }
+
+  @SubscribeMessage('toggle-waiting-room')
+  handleToggleWaitingRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; enabled: boolean },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+
+    this.waitingRoomEnabled.set(data.roomId, data.enabled);
+    this.server.to(data.roomId).emit('waiting-room-changed', { enabled: data.enabled });
+    this.logger.log(`Waiting room ${data.enabled ? 'enabled' : 'disabled'} in room ${data.roomId}`);
   }
 
   @SubscribeMessage('leave-room')
@@ -132,9 +247,15 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to(data.roomId).emit('meeting-ended', { endedBy: participant.name });
 
-    // Cleanup all participants
+    const waitingRoom = this.waitingRooms.get(data.roomId);
+    waitingRoom?.forEach((_, socketId) => {
+      this.server.to(socketId).emit('admission-rejected');
+    });
+    this.waitingRooms.delete(data.roomId);
+
     room.forEach((_, socketId) => this.socketToRoom.delete(socketId));
     this.rooms.delete(data.roomId);
+    this.waitingRoomEnabled.delete(data.roomId);
 
     this.logger.log(`Meeting ${data.roomId} ended by host ${participant.name}`);
   }
@@ -345,8 +466,13 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (room.size === 0) {
       this.rooms.delete(roomId);
       this.lockedRooms.delete(roomId);
+      this.waitingRoomEnabled.delete(roomId);
+      const waitingRoom = this.waitingRooms.get(roomId);
+      waitingRoom?.forEach((_, socketId) => {
+        this.server.to(socketId).emit('admission-rejected');
+      });
+      this.waitingRooms.delete(roomId);
     } else if (participant.role === 'Anfitrión') {
-      // Transfer host to the next participant in the room
       const nextHost = [...room.values()][0];
       nextHost.role = 'Anfitrión';
       this.server.to(nextHost.socketId).emit('you-are-now-host');

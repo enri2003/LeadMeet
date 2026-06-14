@@ -1,90 +1,213 @@
 <div class="h-screen w-full bg-[#0f1114] flex flex-col overflow-hidden relative">
 
-  <!-- ── Toast de notificación ────────────────────────────────────────────────── -->
-  @if (joinNotification) {
-    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-50
-                bg-[#1d2022]/95 border border-white/10 rounded-xl px-5 py-2.5
-                text-white text-sm font-medium shadow-2xl toast-enter whitespace-nowrap">
-      {{ joinNotification }}
-    </div>
-  }
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- SALA DE ESPERA — el participante espera que el anfitrión lo admita        -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  @if (isWaiting) {
+    <div class="flex-1 flex flex-col items-center justify-center gap-8 px-6">
 
-  <!-- ── Reacciones flotantes ──────────────────────────────────────────────────── -->
-  <div class="absolute inset-0 pointer-events-none z-40 overflow-hidden">
-    @for (r of floatingReactions; track r.id) {
-      <div class="absolute bottom-24 float-up flex flex-col items-center gap-1"
-           [style.left.%]="r.x">
-        <span class="text-4xl drop-shadow-lg">{{ r.emoji }}</span>
-        <span class="text-white/70 text-[10px] font-medium bg-black/50 rounded-full px-2 py-0.5">{{ r.name }}</span>
-      </div>
-    }
-  </div>
-
-  <!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
-  <div class="flex items-center justify-between px-5 py-3
-              bg-[#0f1114]/80 backdrop-blur border-b border-white/5 z-10 shrink-0">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg bg-[#0055ff] flex items-center justify-center shrink-0">
-        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
-        </svg>
-      </div>
-      <div>
-        <p class="text-white text-sm font-semibold leading-tight truncate max-w-[260px]">{{ roomId }}</p>
-        <p class="text-white/40 text-xs font-mono">{{ sessionDuration }}</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-2 shrink-0">
-      @if (isHost) {
-        <span class="text-xs font-semibold text-[#0055ff] border border-[#0055ff]/40 rounded-full px-3 py-1">
-          Anfitrión
-        </span>
-      }
-      @if (isLocked) {
-        <span class="flex items-center gap-1.5 text-xs text-yellow-400 border border-yellow-400/30 rounded-full px-2.5 py-1">
-          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/>
+      <!-- Icono + texto -->
+      <div class="text-center space-y-4">
+        <div class="w-20 h-20 rounded-full bg-[#0055ff]/10 border-2 border-[#0055ff]/30
+                    flex items-center justify-center mx-auto">
+          <svg class="w-10 h-10 text-[#0055ff]" fill="none" stroke="currentColor"
+               stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
           </svg>
-          Bloqueada
-        </span>
-      }
-      <span class="text-white/40 text-xs">{{ allParticipants.length }} participante{{ allParticipants.length !== 1 ? 's' : '' }}</span>
-    </div>
-  </div>
+        </div>
+        <div>
+          <h2 class="text-white text-2xl font-bold">Sala de espera</h2>
+          <p class="text-white/50 text-sm mt-1">El anfitrión revisará tu solicitud para unirte</p>
+        </div>
+        <div class="flex items-center justify-center gap-2 text-white/40 text-sm">
+          <span class="w-2 h-2 rounded-full bg-[#0055ff] animate-pulse"></span>
+          <span>Esperando admisión...</span>
+        </div>
+      </div>
 
-  <!-- ── Contenido principal ───────────────────────────────────────────────────── -->
-  <div class="flex flex-1 min-h-0 overflow-hidden">
-
-    <!-- ── Área de vídeo ──────────────────────────────────────────────────────── -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden p-3">
-
-      <!-- ======================================================================= -->
-      <!-- MODO PANTALLA COMPARTIDA: contenido a la IZQUIERDA, cámaras a la DERECHA -->
-      <!-- ======================================================================= -->
-      @if (screenSharingParticipant) {
-        <div class="flex-1 min-h-0 flex gap-3">
-
-          <!-- Contenido de pantalla (izquierda, ocupa todo el espacio) -->
-          <div class="flex-1 min-w-0 min-h-0 rounded-2xl overflow-hidden bg-black relative">
-            <video #screenVideoEl autoplay playsinline
-                   [muted]="screenSharingParticipant.socketId === 'local'"
-                   class="w-full h-full object-contain"></video>
-            <!-- Etiqueta de quién comparte -->
-            <div class="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 rounded-lg px-3 py-1.5 pointer-events-none">
-              <div class="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></div>
-              <span class="text-white text-xs font-medium">
-                {{ screenSharingParticipant.name }}{{ screenSharingParticipant.socketId === 'local' ? ' (Tú)' : '' }} compartiendo pantalla
-              </span>
+      <!-- Vista previa de cámara propia -->
+      <div class="relative overflow-hidden rounded-2xl border border-white/10 bg-[#1d2022] w-72"
+           style="aspect-ratio: 16/9">
+        @if (!isCameraOff && localParticipant?.stream) {
+          <video #waitingCamEl autoplay muted playsinline
+                 class="w-full h-full object-cover" style="transform:scaleX(-1)"></video>
+        } @else {
+          <div class="w-full h-full flex items-center justify-center">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center
+                        text-white text-2xl font-bold"
+                 [style.background]="getAvatarColor(sessionName)">
+              {{ sessionName.charAt(0).toUpperCase() }}
             </div>
           </div>
+        }
+        <!-- Mini controles mic/cam -->
+        <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-3">
+          <button (click)="onToggleMute()"
+                  [ngClass]="isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-black/60 hover:bg-black/80'"
+                  class="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+                  [title]="isMuted ? 'Activar micrófono' : 'Silenciar'">
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <ng-container *ngIf="!isMuted">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </ng-container>
+              <ng-container *ngIf="isMuted">
+                <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+              </ng-container>
+            </svg>
+          </button>
+          <button (click)="onToggleCamera()"
+                  [ngClass]="isCameraOff ? 'bg-red-600 hover:bg-red-700' : 'bg-black/60 hover:bg-black/80'"
+                  class="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+                  [title]="isCameraOff ? 'Activar cámara' : 'Apagar cámara'">
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <ng-container *ngIf="!isCameraOff">
+                <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+              </ng-container>
+              <ng-container *ngIf="isCameraOff">
+                <path d="M21 6.5l-4 4V7a1 1 0 00-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4a1 1 0 00-1 1v10a1 1 0 001 1h12c.2 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z"/>
+              </ng-container>
+            </svg>
+          </button>
+        </div>
+      </div>
 
-          <!-- Barra de cámaras (derecha, ancho fijo, scroll vertical) -->
-          <div class="w-44 shrink-0 flex flex-col gap-2 overflow-y-auto overflow-x-hidden py-0.5">
+      <!-- Nombre y sala -->
+      <div class="text-center">
+        <p class="text-white/70 text-sm font-medium">{{ sessionName }}</p>
+        <p class="text-white/30 text-xs mt-1">Sala: {{ roomId }}</p>
+      </div>
+
+      <!-- Cancelar -->
+      <button (click)="onLeaveCall()"
+              class="border border-red-500/30 text-red-400 hover:bg-red-500/10
+                     rounded-xl px-8 py-2.5 text-sm font-medium transition-colors">
+        Cancelar
+      </button>
+
+    </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  <!-- REUNIÓN ACTIVA                                                            -->
+  <!-- ══════════════════════════════════════════════════════════════════════════ -->
+  } @else {
+
+    <!-- ── Toast de notificación ──────────────────────────────────────────────── -->
+    @if (joinNotification) {
+      <div class="absolute top-4 left-1/2 -translate-x-1/2 z-50
+                  bg-[#1d2022]/95 border border-white/10 rounded-xl px-5 py-2.5
+                  text-white text-sm font-medium shadow-2xl toast-enter whitespace-nowrap">
+        {{ joinNotification }}
+      </div>
+    }
+
+    <!-- ── Reacciones flotantes ────────────────────────────────────────────────── -->
+    <div class="absolute inset-0 pointer-events-none z-40 overflow-hidden">
+      @for (r of floatingReactions; track r.id) {
+        <div class="absolute bottom-24 float-up flex flex-col items-center gap-1"
+             [style.left.%]="r.x">
+          <span class="text-4xl drop-shadow-lg">{{ r.emoji }}</span>
+          <span class="text-white/70 text-[10px] font-medium bg-black/50 rounded-full px-2 py-0.5">{{ r.name }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- ── Cabecera ──────────────────────────────────────────────────────────────── -->
+    <div class="flex items-center justify-between px-5 py-3
+                bg-[#0f1114]/80 backdrop-blur border-b border-white/5 z-10 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-[#0055ff] flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17 10.5V7a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1v-3.5l4 4v-11l-4 4z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-white text-sm font-semibold leading-tight truncate max-w-[260px]">{{ roomId }}</p>
+          <p class="text-white/40 text-xs font-mono">{{ sessionDuration }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        @if (isHost) {
+          <span class="text-xs font-semibold text-[#0055ff] border border-[#0055ff]/40 rounded-full px-3 py-1">
+            Anfitrión
+          </span>
+        }
+        @if (isLocked) {
+          <span class="flex items-center gap-1.5 text-xs text-yellow-400 border border-yellow-400/30 rounded-full px-2.5 py-1">
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/>
+            </svg>
+            Bloqueada
+          </span>
+        }
+        <span class="text-white/40 text-xs">{{ allParticipants.length }} participante{{ allParticipants.length !== 1 ? 's' : '' }}</span>
+      </div>
+    </div>
+
+    <!-- ── Contenido principal ───────────────────────────────────────────────────── -->
+    <div class="flex flex-1 min-h-0 overflow-hidden">
+
+      <!-- ── Área de vídeo ──────────────────────────────────────────────────────── -->
+      <div class="flex-1 flex flex-col min-w-0 overflow-hidden p-3">
+
+        <!-- MODO PANTALLA COMPARTIDA -->
+        @if (screenSharingParticipant) {
+          <div class="flex-1 min-h-0 flex gap-3">
+
+            <!-- Contenido de pantalla (izquierda) -->
+            <div class="flex-1 min-w-0 min-h-0 rounded-2xl overflow-hidden bg-black relative">
+              <video #screenVideoEl autoplay playsinline
+                     [muted]="screenSharingParticipant.socketId === 'local'"
+                     class="w-full h-full object-contain"></video>
+              <div class="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 rounded-lg px-3 py-1.5 pointer-events-none">
+                <div class="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></div>
+                <span class="text-white text-xs font-medium">
+                  {{ screenSharingParticipant.name }}{{ screenSharingParticipant.socketId === 'local' ? ' (Tú)' : '' }} compartiendo pantalla
+                </span>
+              </div>
+            </div>
+
+            <!-- Barra de cámaras (derecha) -->
+            <div class="w-44 shrink-0 flex flex-col gap-2 overflow-y-auto overflow-x-hidden py-0.5">
+              @for (p of allParticipants; track p.socketId) {
+                <div class="w-full shrink-0 rounded-xl overflow-hidden border border-white/10 relative group"
+                     [class.speaking-ring]="p.isActiveSpeaker"
+                     style="aspect-ratio: 16/9">
+                  <app-video-tile
+                    [stream]="p.socketId === 'local' ? localParticipant?.stream : p.stream"
+                    [isLocal]="p.socketId === 'local'"
+                    [name]="p.name"
+                    [isMuted]="p.isMuted"
+                    [isCameraOff]="p.isCameraOff || (p.socketId !== 'local' && !p.stream)"
+                    [isActiveSpeaker]="p.isActiveSpeaker"
+                    class="w-full h-full block"
+                  />
+                  @if (isHost && p.socketId !== 'local') {
+                    <button (click)="onMuteParticipant(p.socketId)"
+                            title="Silenciar"
+                            class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60
+                                   hidden group-hover:flex items-center justify-center
+                                   hover:bg-red-600/80 transition-colors">
+                      <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+                      </svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+          </div>
+
+        <!-- MODO NORMAL: grid uniforme -->
+        } @else {
+          <div class="flex-1 min-h-0 grid gap-3"
+               [style.grid-template-columns]="'repeat(' + gridCols + ', 1fr)'"
+               style="grid-auto-rows: 1fr">
             @for (p of allParticipants; track p.socketId) {
-              <div class="w-full shrink-0 rounded-xl overflow-hidden border border-white/10 relative group"
-                   [class.speaking-ring]="p.isActiveSpeaker"
-                   style="aspect-ratio: 16/9">
-                <!-- Siempre mostramos la CÁMARA — si el stream aún no llegó, se muestra avatar -->
+              <div class="min-h-0 rounded-2xl overflow-hidden group relative"
+                   [class.speaking-ring]="p.isActiveSpeaker">
                 <app-video-tile
                   [stream]="p.socketId === 'local' ? localParticipant?.stream : p.stream"
                   [isLocal]="p.socketId === 'local'"
@@ -95,55 +218,61 @@
                   class="w-full h-full block"
                 />
                 @if (isHost && p.socketId !== 'local') {
-                  <button (click)="onMuteParticipant(p.socketId)"
-                          title="Silenciar"
-                          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60
-                                 hidden group-hover:flex items-center justify-center
-                                 hover:bg-red-600/80 transition-colors">
-                    <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
-                    </svg>
-                  </button>
+                  <div class="absolute top-2 right-2 hidden group-hover:flex gap-1.5">
+                    <button (click)="onMuteParticipant(p.socketId)"
+                            title="Silenciar"
+                            class="w-7 h-7 rounded-lg bg-black/70 flex items-center justify-center hover:bg-orange-500/80 transition-colors">
+                      <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+                      </svg>
+                    </button>
+                    <button (click)="onKickParticipant(p.socketId)"
+                            title="Expulsar"
+                            class="w-7 h-7 rounded-lg bg-black/70 flex items-center justify-center hover:bg-red-600/80 transition-colors">
+                      <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                      </svg>
+                    </button>
+                  </div>
                 }
               </div>
             }
           </div>
+        }
 
-        </div>
+      </div>
 
-      <!-- ======================================================================= -->
-      <!-- MODO NORMAL: grid uniforme — 1 persona=grande, 2=mitad, 3=tercio, etc. -->
-      <!-- ======================================================================= -->
-      } @else {
-        <div class="flex-1 min-h-0 grid gap-3"
-             [style.grid-template-columns]="'repeat(' + gridCols + ', 1fr)'"
-             style="grid-auto-rows: 1fr">
-          @for (p of allParticipants; track p.socketId) {
-            <div class="min-h-0 rounded-2xl overflow-hidden group relative"
-                 [class.speaking-ring]="p.isActiveSpeaker">
-              <app-video-tile
-                [stream]="p.socketId === 'local' ? localParticipant?.stream : p.stream"
-                [isLocal]="p.socketId === 'local'"
-                [name]="p.name"
-                [isMuted]="p.isMuted"
-                [isCameraOff]="p.isCameraOff || (p.socketId !== 'local' && !p.stream)"
-                [isActiveSpeaker]="p.isActiveSpeaker"
-                class="w-full h-full block"
-              />
-              <!-- Botones de anfitrión (visible al pasar el mouse) -->
-              @if (isHost && p.socketId !== 'local') {
-                <div class="absolute top-2 right-2 hidden group-hover:flex gap-1.5">
-                  <button (click)="onMuteParticipant(p.socketId)"
-                          title="Silenciar"
-                          class="w-7 h-7 rounded-lg bg-black/70 flex items-center justify-center hover:bg-orange-500/80 transition-colors">
-                    <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
-                    </svg>
+      <!-- ── Panel derecho (sala de espera + participantes + chat) ─────────────── -->
+      @if (isPanelOpen) {
+        <div class="w-72 shrink-0 flex flex-col bg-[#13161a] border-l border-white/5 overflow-hidden">
+
+          <!-- SALA DE ESPERA (solo para el anfitrión, cuando hay participantes esperando) -->
+          @if (isHost && waitingParticipants.length > 0) {
+            <div class="shrink-0 border-b border-yellow-500/20 bg-yellow-500/5 px-3 py-3">
+              <div class="flex items-center gap-1.5 mb-2.5">
+                <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse shrink-0"></span>
+                <span class="text-yellow-400 text-xs font-semibold uppercase tracking-widest">
+                  Sala de espera ({{ waitingParticipants.length }})
+                </span>
+              </div>
+              @for (wp of waitingParticipants; track wp.socketId) {
+                <div class="flex items-center gap-2 py-1.5">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center
+                              text-white text-xs font-bold shrink-0"
+                       [style.background]="getAvatarColor(wp.name)">
+                    {{ wp.name.charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="text-white/80 text-xs flex-1 min-w-0 truncate">{{ wp.name }}</span>
+                  <button (click)="admitWaitingParticipant(wp.socketId)"
+                          class="text-[10px] font-semibold text-green-400 border border-green-400/40
+                                 hover:bg-green-400/10 rounded-lg px-2 py-1 transition-colors whitespace-nowrap">
+                    Admitir
                   </button>
-                  <button (click)="onKickParticipant(p.socketId)"
-                          title="Expulsar"
-                          class="w-7 h-7 rounded-lg bg-black/70 flex items-center justify-center hover:bg-red-600/80 transition-colors">
-                    <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <button (click)="rejectWaitingParticipant(wp.socketId)"
+                          class="w-6 h-6 flex items-center justify-center text-red-400 border border-red-400/30
+                                 hover:bg-red-400/10 rounded-lg transition-colors shrink-0"
+                          title="Rechazar">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                     </svg>
                   </button>
@@ -151,176 +280,181 @@
               }
             </div>
           }
+
+          <!-- PARTICIPANTES -->
+          <div class="flex flex-col min-h-0" style="flex: 1 1 0">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
+              <span class="text-white/60 text-xs font-semibold uppercase tracking-widest">
+                Participantes ({{ allParticipants.length }})
+              </span>
+              <div class="flex items-center gap-1.5">
+                @if (isHost) {
+                  <button (click)="onMuteAll()"
+                          title="Silenciar a todos"
+                          class="text-[11px] text-white/50 hover:text-white border border-white/10
+                                 hover:border-white/30 rounded-lg px-2 py-1 transition-colors">
+                    Silenciar todos
+                  </button>
+                  <!-- Sala de espera toggle -->
+                  <button (click)="onToggleWaitingRoom()"
+                          [title]="isWaitingRoomEnabled ? 'Desactivar sala de espera' : 'Activar sala de espera'"
+                          [class]="isWaitingRoomEnabled
+                            ? 'text-purple-400 border-purple-400/40 bg-purple-400/10'
+                            : 'text-white/40 border-white/10 hover:text-white hover:border-white/30'"
+                          class="w-7 h-7 flex items-center justify-center border rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>
+                    </svg>
+                  </button>
+                  <button (click)="onToggleLock()"
+                          [title]="isLocked ? 'Desbloquear sala' : 'Bloquear sala'"
+                          [class]="isLocked ? 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10' : 'text-white/40 border-white/10 hover:text-white hover:border-white/30'"
+                          class="w-7 h-7 flex items-center justify-center border rounded-lg transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/>
+                    </svg>
+                  </button>
+                }
+                <button (click)="onTogglePanel()" title="Cerrar panel"
+                        class="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto px-2 py-2 min-h-0">
+              @for (p of allParticipants; track p.socketId) {
+                <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/5 group transition-colors">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                       [style.background]="getAvatarColor(p.name)">
+                    {{ p.name.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-white text-sm font-medium truncate leading-tight">
+                      {{ p.name }}{{ p.socketId === 'local' ? ' (Tú)' : '' }}
+                    </p>
+                    <p class="text-white/35 text-[11px] leading-tight">{{ p.role }}</p>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    @if (p.isSharingScreen) {
+                      <svg class="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 24 24" title="Compartiendo">
+                        <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/>
+                      </svg>
+                    }
+                    @if (p.isActiveSpeaker && !p.isMuted) {
+                      <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                    }
+                    @if (p.isMuted) {
+                      <svg class="w-3.5 h-3.5 text-red-400" fill="currentColor" viewBox="0 0 24 24" title="Silenciado">
+                        <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+                      </svg>
+                    }
+                    @if (isHost && p.socketId !== 'local') {
+                      <div class="hidden group-hover:flex items-center gap-1 ml-1">
+                        <button (click)="onMuteParticipant(p.socketId)" title="Silenciar"
+                                class="w-6 h-6 rounded-lg bg-white/10 hover:bg-orange-500/60 flex items-center justify-center transition-colors">
+                          <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
+                          </svg>
+                        </button>
+                        <button (click)="onKickParticipant(p.socketId)" title="Expulsar"
+                                class="w-6 h-6 rounded-lg bg-white/10 hover:bg-red-600/60 flex items-center justify-center transition-colors">
+                          <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- CHAT -->
+          @if (isChatOpen) {
+            <div class="flex flex-col border-t border-white/5 min-h-0" style="flex: 1 1 0; min-height: 200px">
+              <div class="px-4 py-2.5 shrink-0 border-b border-white/5">
+                <span class="text-white/60 text-xs font-semibold uppercase tracking-widest">Chat</span>
+              </div>
+              <div class="flex-1 overflow-y-auto px-3 py-2 min-h-0 space-y-3">
+                @for (msg of chatMessages; track $index) {
+                  <div>
+                    <div class="flex items-baseline gap-2">
+                      <span class="text-white/80 text-xs font-semibold">{{ msg.senderName }}</span>
+                      <span class="text-white/30 text-[10px]">{{ msg.timestamp | date:'HH:mm' }}</span>
+                    </div>
+                    <p class="text-white/55 text-xs mt-0.5 leading-relaxed break-words">{{ msg.content }}</p>
+                  </div>
+                }
+                @if (chatMessages.length === 0) {
+                  <p class="text-white/20 text-xs text-center py-6">Sin mensajes aún</p>
+                }
+              </div>
+              <div class="px-3 py-3 shrink-0 border-t border-white/5">
+                <div class="flex gap-2">
+                  <input [(ngModel)]="chatInput"
+                         (keydown.enter)="onSendChat()"
+                         placeholder="Escribe un mensaje..."
+                         class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl
+                                px-3 py-2 text-white text-xs placeholder-white/25
+                                focus:outline-none focus:border-[#0055ff]/60 transition-colors" />
+                  <button (click)="onSendChat()"
+                          class="w-8 h-8 rounded-xl bg-[#0055ff] hover:bg-[#0044dd] flex items-center justify-center transition-colors shrink-0">
+                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
         </div>
       }
 
     </div>
 
-    <!-- ── Panel derecho (participantes + chat) ──────────────────────────────── -->
-    @if (isPanelOpen) {
-      <div class="w-72 shrink-0 flex flex-col bg-[#13161a] border-l border-white/5 overflow-hidden">
+    <!-- ── Controles ─────────────────────────────────────────────────────────────── -->
+    <div class="relative shrink-0 flex flex-col items-center pb-5 pt-3 z-20">
 
-        <!-- PARTICIPANTES -->
-        <div class="flex flex-col min-h-0" style="flex: 1 1 0">
-          <div class="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
-            <span class="text-white/60 text-xs font-semibold uppercase tracking-widest">
-              Participantes ({{ allParticipants.length }})
-            </span>
-            <div class="flex items-center gap-1.5">
-              @if (isHost) {
-                <button (click)="onMuteAll()"
-                        title="Silenciar a todos"
-                        class="text-[11px] text-white/50 hover:text-white border border-white/10
-                               hover:border-white/30 rounded-lg px-2 py-1 transition-colors">
-                  Silenciar todos
-                </button>
-                <button (click)="onToggleLock()"
-                        [title]="isLocked ? 'Desbloquear sala' : 'Bloquear sala'"
-                        [class]="isLocked ? 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10' : 'text-white/40 border-white/10 hover:text-white hover:border-white/30'"
-                        class="w-7 h-7 flex items-center justify-center border rounded-lg transition-colors">
-                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/>
-                  </svg>
-                </button>
-              }
-              <button (click)="onTogglePanel()" title="Cerrar panel"
-                      class="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                </svg>
+      <!-- Selector de emojis -->
+      @if (showEmojiPicker) {
+        <div class="absolute bottom-full mb-3 bg-[#1d2022]/95 backdrop-blur border border-white/10 rounded-2xl p-3 shadow-2xl z-50">
+          <div class="grid grid-cols-8 gap-1.5">
+            @for (emoji of reactionEmojis; track emoji) {
+              <button (click)="sendReaction(emoji)"
+                      class="w-9 h-9 flex items-center justify-center rounded-xl text-xl hover:bg-white/10 transition-colors">
+                {{ emoji }}
               </button>
-            </div>
-          </div>
-
-          <div class="flex-1 overflow-y-auto px-2 py-2 min-h-0">
-            @for (p of allParticipants; track p.socketId) {
-              <div class="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/5 group transition-colors">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                     [style.background]="getAvatarColor(p.name)">
-                  {{ p.name.charAt(0).toUpperCase() }}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-white text-sm font-medium truncate leading-tight">
-                    {{ p.name }}{{ p.socketId === 'local' ? ' (Tú)' : '' }}
-                  </p>
-                  <p class="text-white/35 text-[11px] leading-tight">{{ p.role }}</p>
-                </div>
-                <div class="flex items-center gap-1 shrink-0">
-                  @if (p.isSharingScreen) {
-                    <svg class="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 24 24" title="Compartiendo">
-                      <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4z"/>
-                    </svg>
-                  }
-                  @if (p.isActiveSpeaker && !p.isMuted) {
-                    <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                  }
-                  @if (p.isMuted) {
-                    <svg class="w-3.5 h-3.5 text-red-400" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
-                    </svg>
-                  }
-                  @if (isHost && p.socketId !== 'local') {
-                    <div class="hidden group-hover:flex items-center gap-1 ml-1">
-                      <button (click)="onMuteParticipant(p.socketId)" title="Silenciar"
-                              class="w-6 h-6 rounded-lg bg-white/10 hover:bg-orange-500/60 flex items-center justify-center transition-colors">
-                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
-                        </svg>
-                      </button>
-                      <button (click)="onKickParticipant(p.socketId)" title="Expulsar"
-                              class="w-6 h-6 rounded-lg bg-white/10 hover:bg-red-600/60 flex items-center justify-center transition-colors">
-                        <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                        </svg>
-                      </button>
-                    </div>
-                  }
-                </div>
-              </div>
             }
           </div>
         </div>
+      }
 
-        <!-- CHAT -->
-        @if (isChatOpen) {
-          <div class="flex flex-col border-t border-white/5 min-h-0" style="flex: 1 1 0; min-height: 200px">
-            <div class="px-4 py-2.5 shrink-0 border-b border-white/5">
-              <span class="text-white/60 text-xs font-semibold uppercase tracking-widest">Chat</span>
-            </div>
-            <div class="flex-1 overflow-y-auto px-3 py-2 min-h-0 space-y-3">
-              @for (msg of chatMessages; track $index) {
-                <div>
-                  <div class="flex items-baseline gap-2">
-                    <span class="text-white/80 text-xs font-semibold">{{ msg.senderName }}</span>
-                    <span class="text-white/30 text-[10px]">{{ msg.timestamp | date:'HH:mm' }}</span>
-                  </div>
-                  <p class="text-white/55 text-xs mt-0.5 leading-relaxed break-words">{{ msg.content }}</p>
-                </div>
-              }
-              @if (chatMessages.length === 0) {
-                <p class="text-white/20 text-xs text-center py-6">Sin mensajes aún</p>
-              }
-            </div>
-            <div class="px-3 py-3 shrink-0 border-t border-white/5">
-              <div class="flex gap-2">
-                <input [(ngModel)]="chatInput"
-                       (keydown.enter)="onSendChat()"
-                       placeholder="Escribe un mensaje..."
-                       class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl
-                              px-3 py-2 text-white text-xs placeholder-white/25
-                              focus:outline-none focus:border-[#0055ff]/60 transition-colors" />
-                <button (click)="onSendChat()"
-                        class="w-8 h-8 rounded-xl bg-[#0055ff] hover:bg-[#0044dd] flex items-center justify-center transition-colors shrink-0">
-                  <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        }
+      <app-meeting-controls
+        [isMuted]="isMuted"
+        [isCameraOff]="isCameraOff"
+        [isSharingScreen]="isSharingScreen"
+        [isChatOpen]="isChatOpen"
+        [isHost]="isHost"
+        [isPanelOpen]="isPanelOpen"
+        [screenShareWithAudio]="screenShareWithAudio"
+        [isLocked]="isLocked"
+        (toggleMute)="onToggleMute()"
+        (toggleCamera)="onToggleCamera()"
+        (toggleScreenShare)="onToggleScreenShare()"
+        (toggleChat)="onToggleChat()"
+        (togglePanel)="onTogglePanel()"
+        (toggleScreenAudio)="toggleScreenShareAudio()"
+        (emojiPicker)="openEmojiPicker()"
+        (leaveCall)="onLeaveCall()"
+        (endMeeting)="onEndMeeting()"
+      />
+    </div>
 
-      </div>
-    }
-
-  </div>
-
-  <!-- ── Controles ─────────────────────────────────────────────────────────────── -->
-  <div class="relative shrink-0 flex flex-col items-center pb-5 pt-3 z-20">
-
-    <!-- Selector de emojis (aparece arriba de los controles) -->
-    @if (showEmojiPicker) {
-      <div class="absolute bottom-full mb-3 bg-[#1d2022]/95 backdrop-blur border border-white/10 rounded-2xl p-3 shadow-2xl z-50">
-        <div class="grid grid-cols-8 gap-1.5">
-          @for (emoji of reactionEmojis; track emoji) {
-            <button (click)="sendReaction(emoji)"
-                    class="w-9 h-9 flex items-center justify-center rounded-xl text-xl hover:bg-white/10 transition-colors">
-              {{ emoji }}
-            </button>
-          }
-        </div>
-      </div>
-    }
-
-    <app-meeting-controls
-      [isMuted]="isMuted"
-      [isCameraOff]="isCameraOff"
-      [isSharingScreen]="isSharingScreen"
-      [isChatOpen]="isChatOpen"
-      [isHost]="isHost"
-      [isPanelOpen]="isPanelOpen"
-      [screenShareWithAudio]="screenShareWithAudio"
-      [isLocked]="isLocked"
-      (toggleMute)="onToggleMute()"
-      (toggleCamera)="onToggleCamera()"
-      (toggleScreenShare)="onToggleScreenShare()"
-      (toggleChat)="onToggleChat()"
-      (togglePanel)="onTogglePanel()"
-      (toggleScreenAudio)="toggleScreenShareAudio()"
-      (emojiPicker)="openEmojiPicker()"
-      (leaveCall)="onLeaveCall()"
-      (endMeeting)="onEndMeeting()"
-    />
-  </div>
+  }
 
 </div>
