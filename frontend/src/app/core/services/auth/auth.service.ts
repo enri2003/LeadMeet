@@ -29,7 +29,7 @@ export interface SessionUser {
 }
 
 const SESSION_KEY = 'lm_session';
-const SESSION_DURATION = 15 * 60 * 1000; // 15 minutos
+const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 horas
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

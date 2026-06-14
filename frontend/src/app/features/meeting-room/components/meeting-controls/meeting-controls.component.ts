@@ -1,7 +1,9 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -15,6 +17,8 @@ import { CommonModule } from '@angular/common';
   templateUrl: './meeting-controls.component.html',
 })
 export class MeetingControlsComponent {
+  private readonly cdr = inject(ChangeDetectorRef);
+
   @Input() isMuted = false;
   @Input() isCameraOff = false;
   @Input() isSharingScreen = false;
@@ -27,4 +31,14 @@ export class MeetingControlsComponent {
   @Output() toggleChat = new EventEmitter<void>();
   @Output() leaveCall = new EventEmitter<void>();
   @Output() endMeeting = new EventEmitter<void>();
+
+  linkCopied = false;
+
+  copyInviteLink(): void {
+    navigator.clipboard.writeText(globalThis.location.href).then(() => {
+      this.linkCopied = true;
+      this.cdr.markForCheck();
+      setTimeout(() => { this.linkCopied = false; this.cdr.markForCheck(); }, 2000);
+    });
+  }
 }

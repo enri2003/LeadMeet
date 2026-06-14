@@ -187,20 +187,34 @@
 
       </div>
 
-      <div class="flex gap-3 mt-6">
+      <div class="flex flex-col gap-2 mt-6">
+        <!-- Iniciar ahora -->
         <button
-          (click)="showNewMeetingModal = false"
-          class="flex-1 py-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white transition-colors"
-          style="background:rgba(255,255,255,0.05);">
-          Cancelar
+          (click)="onStartNow()"
+          [disabled]="!newMeeting.title || creatingMeeting"
+          class="w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style="background:#0055ff; color:white;">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+          @if (creatingMeeting) { Iniciando... } @else { Iniciar ahora }
         </button>
-        <button
-          (click)="onCreateMeeting()"
-          [disabled]="!newMeeting.title || !newMeeting.startTime || !newMeeting.endTime || creatingMeeting"
-          class="flex-1 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style="background:white; color:black;">
-          @if (creatingMeeting) { Creando... } @else { Crear reunión }
-        </button>
+
+        <div class="flex gap-2">
+          <button
+            (click)="showNewMeetingModal = false"
+            class="flex-1 py-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white transition-colors"
+            style="background:rgba(255,255,255,0.05);">
+            Cancelar
+          </button>
+          <button
+            (click)="onCreateMeeting()"
+            [disabled]="!newMeeting.title || !newMeeting.startTime || !newMeeting.endTime || creatingMeeting"
+            class="flex-1 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            style="background:white; color:black;">
+            @if (creatingMeeting) { Programando... } @else { Programar }
+          </button>
+        </div>
       </div>
     </div>
   </div>

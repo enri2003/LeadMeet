@@ -66,6 +66,30 @@ export class DashboardComponent implements OnInit {
     this.showNewMeetingModal = true;
   }
 
+  onStartNow(): void {
+    if (!this.newMeeting.title) return;
+    this.creatingMeeting = true;
+    const now = new Date();
+    const end = new Date(now.getTime() + 60 * 60 * 1000);
+    const session = this.authSvc.getSession();
+    this.meetingsApi.createMeeting({
+      title: this.newMeeting.title,
+      type: this.newMeeting.type,
+      description: this.newMeeting.description,
+      isConfidential: this.newMeeting.isConfidential,
+      startTime: now.toISOString(),
+      endTime: end.toISOString(),
+      userId: session?.userId ?? '',
+    }).subscribe({
+      next: (meeting) => {
+        this.creatingMeeting = false;
+        this.showNewMeetingModal = false;
+        this.router.navigate(['/meeting', meeting.meetingCode ?? meeting.id]);
+      },
+      error: () => { this.creatingMeeting = false; },
+    });
+  }
+
   onCreateMeeting(): void {
     if (!this.newMeeting.title || !this.newMeeting.startTime || !this.newMeeting.endTime) return;
     this.creatingMeeting = true;
