@@ -170,21 +170,22 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     room.set(data.targetSocketId, participant);
     this.socketToRoom.set(data.targetSocketId, data.roomId);
 
-    const targetSocket = this.server.sockets.sockets.get(data.targetSocketId);
-    if (targetSocket) {
-      await targetSocket.join(data.roomId);
+    // Add the admitted socket to the Socket.IO room
+    await this.server.in(data.targetSocketId).socketsJoin(data.roomId);
 
-      const existingParticipants = [...room.values()].filter(
-        (p) => p.socketId !== data.targetSocketId,
-      );
-      targetSocket.emit('admitted-to-room', {
-        participants: existingParticipants,
-        isHost: false,
-        roomId: data.roomId,
-      });
+    const existingParticipants = [...room.values()].filter(
+      (p) => p.socketId !== data.targetSocketId,
+    );
 
-      targetSocket.to(data.roomId).emit('user-joined', participant);
-    }
+    // Tell the admitted participant they are in
+    this.server.to(data.targetSocketId).emit('admitted-to-room', {
+      participants: existingParticipants,
+      isHost: false,
+      roomId: data.roomId,
+    });
+
+    // Tell everyone else in the room that this participant joined
+    this.server.to(data.roomId).except(data.targetSocketId).emit('user-joined', participant);
 
     await this.meetingsService.recordJoin(data.roomId, waiting.userId, new Date()).catch(() => null);
     this.logger.log(`${waiting.name} admitted to room ${data.roomId}`);
