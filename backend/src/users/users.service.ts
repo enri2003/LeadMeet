@@ -42,16 +42,3 @@ export class UsersService {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado.');
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager.query(`DELETE FROM meeting_participants WHERE user_id = $1`, [userId]);
-      await manager.query(
-        `DELETE FROM meeting_logs WHERE meeting_id IN (SELECT id FROM meetings WHERE created_by = $1)`,
-        [userId],
-      );
-      await manager.query(`DELETE FROM meetings WHERE created_by = $1`, [userId]);
-      await manager.query(`DELETE FROM users WHERE id = $1`, [userId]);
-    });
-
-    return { message: 'Cuenta eliminada correctamente.' };
-  }
-}
