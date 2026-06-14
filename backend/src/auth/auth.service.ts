@@ -32,7 +32,12 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<SessionUser> {
-    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    const user = await this.userRepo.findOne({
+      where: [
+        { email: dto.identifier },
+        { name: dto.identifier },
+      ],
+    });
 
     if (!user?.passwordHash) {
       throw new UnauthorizedException('Credenciales inválidas.');

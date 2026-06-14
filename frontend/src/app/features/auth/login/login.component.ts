@@ -22,8 +22,8 @@ export class LoginComponent {
     private readonly router: Router,
   ) {
     this.form = this.fb.group({
-      email:    ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      identifier: ['', [Validators.required]],
+      password:   ['', [Validators.required, Validators.minLength(8)]],
     });
   }
 
@@ -34,9 +34,9 @@ export class LoginComponent {
     this.isLoading = true;
     this.serverError = null;
 
-    const { email, password } = this.form.value as { email: string; password: string };
+    const { identifier, password } = this.form.value as { identifier: string; password: string };
 
-    this.authSvc.login(email, password).subscribe({
+    this.authSvc.login(identifier, password).subscribe({
       next: () => {
         this.isLoading = false;
         this.router.navigate(['/']);
