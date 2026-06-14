@@ -1,4 +1,5 @@
 import {
+  AfterViewChecked,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -42,7 +43,7 @@ const AVATAR_PALETTE = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './meeting-room.component.html',
 })
-export class MeetingRoomComponent implements OnInit, OnDestroy {
+export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked {
   private readonly signaling = inject(SignalingService);
   private readonly media = inject(MediaStreamService);
   private readonly authSvc = inject(AuthService);
@@ -83,7 +84,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
   // ─── Chat ────────────────────────────────────────────────────────────────────
   chatInput = '';
 
-  // ─── Notifications ───────────────────────────────────────────────────────────
+  // ─── Notificaciones ──────────────────────────────────────────────────────────
   joinNotification: string | null = null;
 
   // ─── Emoji ───────────────────────────────────────────────────────────────────
@@ -101,12 +102,9 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
   private readonly screenSenders = new Map<string, RTCRtpSender[]>();
   private readonly subs: Subscription[] = [];
 
-  // ─── Screen share video ref ───────────────────────────────────────────────────
-  @ViewChild('screenVideoEl') set screenVideoRef(el: ElementRef<HTMLVideoElement> | undefined) {
-    if (el?.nativeElement) {
-      el.nativeElement.srcObject = this.screenShareStream ?? null;
-    }
-  }
+  // ─── Screen share video element ───────────────────────────────────────────────
+  // Se usa ngAfterViewChecked para mantener srcObject sincronizado con el stream real
+  @ViewChild('screenVideoEl') screenVideoEl?: ElementRef<HTMLVideoElement>;
 
   // ─── Computed ────────────────────────────────────────────────────────────────
 
@@ -124,10 +122,9 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     const sharer = this.screenSharingParticipant;
     if (!sharer) return null;
     if (sharer.socketId === 'local') return this.media.currentScreenStream;
-    return sharer.screenStream;
+    return sharer.screenStream ?? null;
   }
 
-  /** Número de columnas del grid — siempre tiles iguales para todos */
   get gridCols(): number {
     const n = this.allParticipants.length;
     if (n <= 1) return 1;
@@ -194,6 +191,16 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     this.refresh();
   }
 
+  /** Sincroniza el srcObject del video de pantalla compartida en cada ciclo de CD */
+  ngAfterViewChecked(): void {
+    const el = this.screenVideoEl?.nativeElement;
+    if (!el) return;
+    const stream = this.screenShareStream ?? null;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+  }
+
   ngOnDestroy(): void {
     this.subs.forEach((s) => s.unsubscribe());
     this.peerConnections.forEach((pc) => pc.close());
@@ -240,6 +247,10 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.signaling.onOffer().subscribe(async ({ offer, fromSocketId }) => {
         const pc = this.getOrCreatePeer(fromSocketId);
+        if (pc.signalingState === 'have-local-offer') {
+          // Ante una oferta entrante mientras esperamos respuesta, la aceptamos
+          await pc.setLocalDescription({ type: 'rollback' }).catch(() => null);
+        }
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
@@ -335,7 +346,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Sucesión de anfitrión: cuando el host sale, el siguiente recibe este evento
     this.subs.push(
       this.signaling.onBecameHost().subscribe(() => {
         this.isHost = true;
@@ -345,7 +355,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Actualizar rol de otros participantes cuando cambia el host
     this.subs.push(
       this.signaling.onParticipantRoleChanged().subscribe(({ socketId, role }) => {
         const p = this.participants.find((x) => x.socketId === socketId);
@@ -361,7 +370,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-    // Add local camera+mic tracks
+    // Agregar tracks de cámara/mic locales
     const localStream = this.media.currentLocalStream;
     localStream?.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
@@ -369,25 +378,19 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       if (candidate) this.signaling.sendIceCandidate(socketId, candidate.toJSON());
     };
 
-    // Re-negotiate when tracks are added/removed (e.g. screen share)
-    pc.onnegotiationneeded = async () => {
-      if (pc.signalingState !== 'stable') return;
-      try {
-        const offer = await pc.createOffer();
-        if (pc.signalingState !== 'stable') return;
-        await pc.setLocalDescription(offer);
-        this.signaling.sendOffer(socketId, offer);
-      } catch { /* ignore */ }
-    };
+    // NO usar onnegotiationneeded: la renegociación para compartir pantalla
+    // se maneja explícitamente en onToggleScreenShare con createOffer manual.
+    // Usar onnegotiationneeded causaba dos ofertas simultáneas que corrompían la conexión.
 
-    pc.ontrack = ({ streams, track }) => {
+    pc.ontrack = ({ streams }) => {
       this.zone.run(() => {
         const p = this.participants.find((x) => x.socketId === socketId);
         if (!p || !streams[0]) return;
-        // First stream = camera stream; different stream ID = screen share
         if (!p.stream) {
+          // Primer stream = cámara
           p.stream = streams[0];
         } else if (streams[0].id !== p.stream.id) {
+          // Stream diferente = pantalla compartida
           p.screenStream = streams[0];
           p.isSharingScreen = true;
         }
@@ -401,9 +404,11 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
   private async initiateOffer(targetSocketId: string): Promise<void> {
     const pc = this.getOrCreatePeer(targetSocketId);
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    this.signaling.sendOffer(targetSocketId, offer);
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      this.signaling.sendOffer(targetSocketId, offer);
+    } catch { /* ignore */ }
   }
 
   // ─── Participants ─────────────────────────────────────────────────────────────
@@ -440,17 +445,30 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
   async onToggleScreenShare(): Promise<void> {
     if (this.isSharingScreen) {
-      // Stop: remove all screen share senders from every peer connection
+      // 1. Quitar todos los senders de pantalla
       this.peerConnections.forEach((pc, socketId) => {
         (this.screenSenders.get(socketId) ?? []).forEach((s) => {
           try { pc.removeTrack(s); } catch { /* ignore */ }
         });
         this.screenSenders.delete(socketId);
       });
+
       this.media.stopScreenShare();
       this.isSharingScreen = false;
       if (this.localParticipant) this.localParticipant.isSharingScreen = false;
       this.signaling.toggleScreenShare(this.roomId, false);
+
+      // 2. Renegociar explícitamente para que los remotos retiren el track de pantalla
+      for (const [socketId, pc] of this.peerConnections) {
+        if (pc.signalingState === 'stable') {
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            this.signaling.sendOffer(socketId, offer);
+          } catch { /* ignore */ }
+        }
+      }
+
     } else {
       const screen = await this.media.startScreenShare(this.screenShareWithAudio);
       if (!screen) return;
@@ -459,17 +477,27 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       if (this.localParticipant) this.localParticipant.isSharingScreen = true;
       this.signaling.toggleScreenShare(this.roomId, true, screen.id);
 
-      // addTrack (not replaceTrack) so camera remains visible as a separate stream
-      this.peerConnections.forEach((pc, socketId) => {
+      // 1. Agregar todos los tracks de pantalla (video + audio opcional) con addTrack
+      for (const [socketId, pc] of this.peerConnections) {
         const senders: RTCRtpSender[] = [];
         screen.getTracks().forEach((t) => senders.push(pc.addTrack(t, screen)));
         this.screenSenders.set(socketId, senders);
-      });
 
-      // Auto-stop when user closes via browser "Stop sharing" button
+        // 2. Renegociar explícitamente (SIN depender de onnegotiationneeded)
+        if (pc.signalingState === 'stable') {
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            this.signaling.sendOffer(socketId, offer);
+          } catch { /* ignore */ }
+        }
+      }
+
+      // Detener automáticamente cuando el usuario cierra desde el navegador
       screen.getVideoTracks()[0].onended = () =>
         this.zone.run(() => { if (this.isSharingScreen) this.onToggleScreenShare(); });
     }
+
     this.refresh();
   }
 
@@ -500,7 +528,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
   onToggleChat(): void {
     this.isChatOpen = !this.isChatOpen;
-    // Abrir el panel automáticamente si está cerrado
     if (this.isChatOpen && !this.isPanelOpen) this.isPanelOpen = true;
     this.refresh();
   }
@@ -581,7 +608,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
         this.speakingRafId = requestAnimationFrame(check);
       };
       this.speakingRafId = requestAnimationFrame(check);
-    } catch { /* AudioContext unavailable */ }
+    } catch { /* AudioContext no disponible */ }
   }
 
   // ─── Timer ───────────────────────────────────────────────────────────────────

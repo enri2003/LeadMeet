@@ -80,8 +80,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       name,
       role: isHost ? 'Anfitrión' : role,
-      isMuted: false,
-      isCameraOff: false,
+      isMuted: true,
+      isCameraOff: true,
       joinedAt: new Date(),
     };
 

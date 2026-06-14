@@ -84,13 +84,13 @@
               <div class="w-full shrink-0 rounded-xl overflow-hidden border border-white/10 relative group"
                    [class.speaking-ring]="p.isActiveSpeaker"
                    style="aspect-ratio: 16/9">
-                <!-- Siempre mostramos la CÁMARA (stream), nunca la pantalla -->
+                <!-- Siempre mostramos la CÁMARA — si el stream aún no llegó, se muestra avatar -->
                 <app-video-tile
                   [stream]="p.socketId === 'local' ? localParticipant?.stream : p.stream"
                   [isLocal]="p.socketId === 'local'"
                   [name]="p.name"
                   [isMuted]="p.isMuted"
-                  [isCameraOff]="p.isCameraOff"
+                  [isCameraOff]="p.isCameraOff || (p.socketId !== 'local' && !p.stream)"
                   [isActiveSpeaker]="p.isActiveSpeaker"
                   class="w-full h-full block"
                 />
@@ -126,7 +126,7 @@
                 [isLocal]="p.socketId === 'local'"
                 [name]="p.name"
                 [isMuted]="p.isMuted"
-                [isCameraOff]="p.isCameraOff"
+                [isCameraOff]="p.isCameraOff || (p.socketId !== 'local' && !p.stream)"
                 [isActiveSpeaker]="p.isActiveSpeaker"
                 class="w-full h-full block"
               />
