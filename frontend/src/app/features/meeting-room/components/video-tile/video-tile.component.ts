@@ -40,20 +40,33 @@ import { CommonModule } from '@angular/common';
         <p class="text-white/60 text-xs font-medium mt-3 tracking-wide">{{ name }}</p>
       </div>
 
-      <!-- Active speaker ring -->
-      <div *ngIf="isActiveSpeaker"
-           class="absolute inset-0 rounded-2xl border-2 border-[#0055ff] pointer-events-none
-                  shadow-[0_0_16px_rgba(0,85,255,0.4)]"></div>
+      <!-- Active speaker ring (green border on tile) -->
+      <div *ngIf="isActiveSpeaker && !isMuted"
+           class="absolute inset-0 rounded-2xl pointer-events-none"
+           style="box-shadow: inset 0 0 0 3px rgba(34,197,94,0.9), 0 0 24px rgba(34,197,94,0.35)"></div>
 
       <!-- Bottom label bar -->
       <div class="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between
-                  bg-gradient-to-t from-black/60 to-transparent">
-        <span class="text-white text-xs font-medium truncate drop-shadow">
-          {{ name }}{{ isLocal ? ' (Tú)' : '' }}
-        </span>
-        <div class="flex items-center gap-1">
-          <span *ngIf="isMuted" class="flex items-center justify-center w-5 h-5 rounded-full bg-red-600/80">
-            <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  bg-gradient-to-t from-black/70 to-transparent">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <!-- Speaking wave bars -->
+          <div *ngIf="isActiveSpeaker && !isMuted" class="flex items-end gap-px shrink-0">
+            <span class="w-0.5 h-2.5 bg-green-400 rounded-full mic-wave" style="animation-delay:0ms"></span>
+            <span class="w-0.5 h-3.5 bg-green-400 rounded-full mic-wave" style="animation-delay:100ms"></span>
+            <span class="w-0.5 h-2 bg-green-400 rounded-full mic-wave" style="animation-delay:200ms"></span>
+            <span class="w-0.5 h-4 bg-green-400 rounded-full mic-wave" style="animation-delay:50ms"></span>
+            <span class="w-0.5 h-2.5 bg-green-400 rounded-full mic-wave" style="animation-delay:150ms"></span>
+          </div>
+          <span class="text-white text-xs font-medium truncate drop-shadow"
+                [class.text-green-300]="isActiveSpeaker && !isMuted">
+            {{ name }}{{ isLocal ? ' (Tú)' : '' }}
+          </span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <!-- Muted: red mic-slash badge -->
+          <span *ngIf="isMuted"
+                class="flex items-center justify-center w-6 h-6 rounded-full bg-red-600 shadow-lg">
+            <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
             </svg>
           </span>
@@ -99,12 +112,17 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['stream'] && this.videoEl?.nativeElement) {
       this.videoEl.nativeElement.srcObject = this.stream ?? null;
+      if (this.stream) this.videoEl.nativeElement.play().catch(() => null);
+    }
+    if (changes['isCameraOff'] && !this.isCameraOff && this.videoEl?.nativeElement?.srcObject) {
+      this.videoEl.nativeElement.play().catch(() => null);
     }
   }
 
   ngAfterViewInit(): void {
     if (this.stream && this.videoEl?.nativeElement) {
       this.videoEl.nativeElement.srcObject = this.stream;
+      this.videoEl.nativeElement.play().catch(() => null);
     }
   }
 }
