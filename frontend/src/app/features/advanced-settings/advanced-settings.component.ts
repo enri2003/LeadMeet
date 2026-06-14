@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SettingsService } from '../../core/services/settings.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import {
   UserSettings,
   DEFAULT_SETTINGS,
@@ -31,6 +32,7 @@ interface AudioDevice {
 })
 export class AdvancedSettingsComponent implements OnInit {
   private readonly settingsSvc = inject(SettingsService);
+  private readonly authSvc = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly router = inject(Router);
 
@@ -45,6 +47,9 @@ export class AdvancedSettingsComponent implements OnInit {
   saving = false;
   saveSuccess = false;
   loggingOut = false;
+  showDeleteModal = false;
+  deleteConfirmText = '';
+  deleting = false;
 
   readonly fontLabels = FONT_LABELS;
   readonly privacyOptions: { value: PrivacyLevel; label: string; desc: string }[] = [
@@ -141,6 +146,22 @@ export class AdvancedSettingsComponent implements OnInit {
   onReset(): void {
     this.settings = { ...DEFAULT_SETTINGS };
     this.cdr.markForCheck();
+  }
+
+  onDeleteAccount(): void {
+    if (this.deleteConfirmText !== 'ELIMINAR' || this.deleting) return;
+    this.deleting = true;
+    this.authSvc.deleteAccount().subscribe({
+      next: () => {
+        this.authSvc.logout();
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.deleting = false;
+        this.showDeleteModal = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // Task 6.5 — global logout

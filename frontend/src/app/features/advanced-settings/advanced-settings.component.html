@@ -105,11 +105,9 @@
             <p class="text-white/40 text-xs mt-0.5">Suprime ladridos, teclados y eco ambiental mediante redes neuronales locales.</p>
           </div>
           <button (click)="settings.noiseCancel = !settings.noiseCancel"
-                  [class.bg-[#0055ff]]="settings.noiseCancel"
-                  [class.bg-white/10]="!settings.noiseCancel"
+                  [ngClass]="settings.noiseCancel ? 'bg-[#0055ff]' : 'bg-white/10'"
                   class="relative w-11 h-6 rounded-full transition-colors shrink-0 mt-0.5 focus:outline-none">
-            <span [class.translate-x-5]="settings.noiseCancel"
-                  [class.translate-x-0.5]="!settings.noiseCancel"
+            <span [ngClass]="settings.noiseCancel ? 'translate-x-5' : 'translate-x-0.5'"
                   class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 block"></span>
           </button>
         </div>
@@ -121,11 +119,9 @@
             <p class="text-white/40 text-xs mt-0.5">Centra automáticamente su imagen y optimiza la iluminación para entornos ejecutivos.</p>
           </div>
           <button (click)="settings.faceLink = !settings.faceLink"
-                  [class.bg-[#0055ff]]="settings.faceLink"
-                  [class.bg-white/10]="!settings.faceLink"
+                  [ngClass]="settings.faceLink ? 'bg-[#0055ff]' : 'bg-white/10'"
                   class="relative w-11 h-6 rounded-full transition-colors shrink-0 mt-0.5 focus:outline-none">
-            <span [class.translate-x-5]="settings.faceLink"
-                  [class.translate-x-0.5]="!settings.faceLink"
+            <span [ngClass]="settings.faceLink ? 'translate-x-5' : 'translate-x-0.5'"
                   class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 block"></span>
           </button>
         </div>
@@ -152,15 +148,13 @@
             <label *ngFor="let opt of privacyOptions"
                    class="flex items-center gap-3 cursor-pointer group">
               <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
-                   [class.border-[#0055ff]]="settings.privacyLevel === opt.value"
-                   [class.border-white/20]="settings.privacyLevel !== opt.value">
+                   [ngClass]="settings.privacyLevel === opt.value ? 'border-[#0055ff]' : 'border-white/20'">
                 <div *ngIf="settings.privacyLevel === opt.value"
                      class="w-2 h-2 rounded-full bg-[#0055ff]"></div>
               </div>
               <input type="radio" [(ngModel)]="settings.privacyLevel" [value]="opt.value" class="sr-only"/>
               <span class="text-sm transition-colors"
-                    [class.text-white]="settings.privacyLevel === opt.value"
-                    [class.text-white/60]="settings.privacyLevel !== opt.value">
+                    [ngClass]="settings.privacyLevel === opt.value ? 'text-white' : 'text-white/60'">
                 {{ opt.label }}
               </span>
             </label>
@@ -174,11 +168,9 @@
             <p class="text-white/40 text-xs mt-0.5">No mostrar si estás 'En línea' a otros directivos.</p>
           </div>
           <button (click)="settings.hidePresence = !settings.hidePresence"
-                  [class.bg-[#0055ff]]="settings.hidePresence"
-                  [class.bg-white/10]="!settings.hidePresence"
+                  [ngClass]="settings.hidePresence ? 'bg-[#0055ff]' : 'bg-white/10'"
                   class="relative w-11 h-6 rounded-full transition-colors shrink-0 mt-0.5 focus:outline-none">
-            <span [class.translate-x-5]="settings.hidePresence"
-                  [class.translate-x-0.5]="!settings.hidePresence"
+            <span [ngClass]="settings.hidePresence ? 'translate-x-5' : 'translate-x-0.5'"
                   class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 block"></span>
           </button>
         </div>
@@ -222,13 +214,11 @@
             <button *ngFor="let t of themes"
                     (click)="settings.theme = t.value"
                     class="flex-1 rounded-xl border-2 p-3 transition-all text-center"
-                    [class.border-[#0055ff]]="settings.theme === t.value"
-                    [class.border-white/10]="settings.theme !== t.value">
+                    [ngClass]="settings.theme === t.value ? 'border-[#0055ff]' : 'border-white/10'">
               <div class="w-full h-10 rounded-lg mb-2 border border-white/10"
                    [style.background]="t.bg"></div>
               <span class="text-xs font-medium"
-                    [class.text-white]="settings.theme === t.value"
-                    [class.text-white/50]="settings.theme !== t.value">
+                    [ngClass]="settings.theme === t.value ? 'text-white' : 'text-white/50'">
                 {{ t.label }}
               </span>
             </button>
@@ -244,11 +234,9 @@
               <p class="text-white/40 text-xs">Generación por AI multilingüe.</p>
             </div>
             <button (click)="settings.captions = !settings.captions"
-                    [class.bg-[#0055ff]]="settings.captions"
-                    [class.bg-white/10]="!settings.captions"
+                    [ngClass]="settings.captions ? 'bg-[#0055ff]' : 'bg-white/10'"
                     class="relative w-11 h-6 rounded-full transition-colors shrink-0 focus:outline-none">
-              <span [class.translate-x-5]="settings.captions"
-                    [class.translate-x-0.5]="!settings.captions"
+              <span [ngClass]="settings.captions ? 'translate-x-5' : 'translate-x-0.5'"
                     class="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 block"></span>
             </button>
           </div>
@@ -268,20 +256,100 @@
       </div>
     </div>
 
-    <!-- ─── CERRAR SESIÓN GLOBAL (Task 6.5) ─── -->
-    <div class="bg-[#1d2022] border border-red-500/20 rounded-2xl p-5 flex items-center justify-between mb-24">
-      <div>
-        <p class="text-red-400 font-semibold text-sm">Cerrar Sesión Global</p>
-        <p class="text-white/40 text-xs mt-0.5">Finaliza todas las sesiones activas en todos sus dispositivos corporativos.</p>
+    <!-- ─── ZONA DE PELIGRO ─── -->
+    <div class="border border-red-500/20 rounded-2xl overflow-hidden mb-24">
+
+      <!-- Header -->
+      <div class="px-5 py-3 border-b border-red-500/15" style="background: rgba(239,68,68,0.04);">
+        <p class="text-red-400 text-xs font-bold uppercase tracking-widest">Zona de Peligro</p>
       </div>
-      <button (click)="onLogoutAll()"
-              [disabled]="loggingOut"
-              class="bg-transparent border border-white/20 hover:border-red-500/50 hover:bg-red-500/10 text-white text-sm font-medium px-5 py-2 rounded-xl transition-all disabled:opacity-50">
-        {{ loggingOut ? 'Cerrando...' : 'Cerrar Sesión' }}
-      </button>
+
+      <!-- Cerrar sesión global -->
+      <div class="bg-[#1d2022] p-5 flex items-center justify-between border-b border-white/5">
+        <div>
+          <p class="text-white font-semibold text-sm">Cerrar Sesión Global</p>
+          <p class="text-white/40 text-xs mt-0.5">Finaliza todas las sesiones activas en todos tus dispositivos.</p>
+        </div>
+        <button (click)="onLogoutAll()"
+                [disabled]="loggingOut"
+                class="bg-transparent border border-white/20 hover:border-red-500/50 hover:bg-red-500/10 text-white text-sm font-medium px-5 py-2 rounded-xl transition-all disabled:opacity-50">
+          {{ loggingOut ? 'Cerrando...' : 'Cerrar Sesión' }}
+        </button>
+      </div>
+
+      <!-- Eliminar cuenta -->
+      <div class="bg-[#1d2022] p-5 flex items-center justify-between">
+        <div>
+          <p class="text-red-400 font-semibold text-sm">Eliminar Cuenta</p>
+          <p class="text-white/40 text-xs mt-0.5">Elimina permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.</p>
+        </div>
+        <button (click)="showDeleteModal = true; deleteConfirmText = ''"
+                class="bg-transparent border border-red-500/40 hover:bg-red-500/15 text-red-400 text-sm font-medium px-5 py-2 rounded-xl transition-all">
+          Eliminar cuenta
+        </button>
+      </div>
     </div>
 
   </main>
+
+  <!-- ══ MODAL: Confirmar eliminación ══ -->
+  @if (showDeleteModal) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center px-4"
+         style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+      <div class="w-full max-w-sm rounded-2xl p-6" style="background:#181c1e; border:1px solid rgba(239,68,68,0.3);">
+
+        <!-- Ícono -->
+        <div class="flex justify-center mb-4">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(239,68,68,0.1);">
+            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+        </div>
+
+        <h3 class="text-white font-black text-lg text-center mb-1">¿Eliminar tu cuenta?</h3>
+        <p class="text-white/40 text-sm text-center mb-5 leading-relaxed">
+          Se eliminarán permanentemente tu perfil, reuniones y todos tus datos.<br>
+          <strong class="text-white/60">Esta acción no se puede deshacer.</strong>
+        </p>
+
+        <p class="text-white/50 text-xs mb-2 text-center">
+          Escribe <span class="text-red-400 font-bold">ELIMINAR</span> para confirmar
+        </p>
+        <input
+          [(ngModel)]="deleteConfirmText"
+          type="text"
+          placeholder="ELIMINAR"
+          class="w-full rounded-xl px-4 py-3 text-center text-sm font-bold text-white placeholder-white/20 outline-none mb-5"
+          style="background:#1d2022; border:1px solid rgba(239,68,68,0.3);"
+          onfocus="this.style.borderColor='rgba(239,68,68,0.6)'"
+          onblur="this.style.borderColor='rgba(239,68,68,0.3)'"
+        />
+
+        <div class="flex gap-3">
+          <button (click)="showDeleteModal = false; deleteConfirmText = ''"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white transition-colors"
+                  style="background:rgba(255,255,255,0.05);">
+            Cancelar
+          </button>
+          <button (click)="onDeleteAccount()"
+                  [disabled]="deleteConfirmText !== 'ELIMINAR' || deleting"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style="background: #dc2626;">
+            @if (deleting) {
+              <svg class="w-4 h-4 animate-spin mx-auto" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            } @else {
+              Eliminar para siempre
+            }
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
 
   <!-- ══ STICKY BOTTOM BAR ══ -->
   <footer class="fixed bottom-0 left-56 right-0 z-20 flex items-center justify-center gap-3 px-8 py-4

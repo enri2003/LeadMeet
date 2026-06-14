@@ -61,6 +61,13 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.base}/resend-otp`, { email });
   }
 
+  deleteAccount(): Observable<{ message: string }> {
+    const session = this.getSession();
+    return this.http.delete<{ message: string }>(
+      `${environment.apiUrl}/users/me?userId=${session?.userId ?? ''}`,
+    );
+  }
+
   logout(): void {
     localStorage.removeItem(SESSION_KEY);
   }
