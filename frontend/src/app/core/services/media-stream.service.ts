@@ -20,6 +20,11 @@ export class MediaStreamService {
       video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
       audio: { echoCancellation: true, noiseSuppression: true },
     });
+    // Join with mic and camera OFF by default
+    stream.getAudioTracks().forEach((t) => (t.enabled = false));
+    stream.getVideoTracks().forEach((t) => (t.enabled = false));
+    this._isMuted.next(true);
+    this._isCameraOff.next(true);
     this._localStream.next(stream);
     return stream;
   }

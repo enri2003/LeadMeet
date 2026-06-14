@@ -22,6 +22,9 @@ import { MeetingControlsComponent } from './components/meeting-controls/meeting-
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
+  { urls: 'stun:stun3.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
 ];
 
 @Component({
@@ -58,8 +61,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
   isChatOpen = true;
 
   // ─── Controls ────────────────────────────────────────────────────────────────
-  isMuted = false;
-  isCameraOff = false;
+  isMuted = true;
+  isCameraOff = true;
   isSharingScreen = false;
 
   // ─── Timer ───────────────────────────────────────────────────────────────────
@@ -107,8 +110,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
         userId: this.sessionUserId,
         name: this.sessionName,
         role: 'Anfitrión',
-        isMuted: false,
-        isCameraOff: false,
+        isMuted: true,
+        isCameraOff: true,
         isActiveSpeaker: false,
         stream: localStream,
       };
@@ -119,7 +122,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
         userId: this.sessionUserId,
         name: this.sessionName,
         role: 'Anfitrión',
-        isMuted: false,
+        isMuted: true,
         isCameraOff: true,
         isActiveSpeaker: false,
       };
@@ -147,19 +150,19 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
   // ─── Signaling handlers ──────────────────────────────────────────────────────
 
   private registerSignalingHandlers(): void {
-    // Room state: send offers to all existing participants
+    // Room state: new user registers existing participants but does NOT initiate offers.
+    // Existing users will send offers via onUserJoined on their side.
     this.subs.push(
       this.signaling.onRoomState().subscribe((state) => {
         this.isHost = state.isHost;
         for (const p of state.participants) {
           this.addParticipant(p);
-          this.initiateOffer(p.socketId);
         }
         this.refresh();
       }),
     );
 
-    // New user joined: existing users send offers to them
+    // New user joined: existing users send offers to the newcomer
     this.subs.push(
       this.signaling.onUserJoined().subscribe((p) => {
         this.addParticipant(p);
