@@ -5,7 +5,7 @@ export class LoginDto {
   @ApiProperty({ example: 'director@empresa.com o juanperez' })
   @IsString()
   @IsNotEmpty()
-  identifier: string;
+  email: string;
 
   @ApiProperty({ example: 'securePass123' })
   @IsString()

@@ -34,8 +34,8 @@ export class AuthService {
   async login(dto: LoginDto): Promise<SessionUser> {
     const user = await this.userRepo.findOne({
       where: [
-        { email: dto.identifier },
-        { name: dto.identifier },
+        { email: dto.email },
+        { name: dto.email },
       ],
     });
 

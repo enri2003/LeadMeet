@@ -38,7 +38,7 @@ export class AuthService {
   constructor(private readonly http: HttpClient) {}
 
   login(identifier: string, password: string): Observable<SessionUser> {
-    return this.http.post<SessionUser>(`${this.base}/login`, { identifier, password }).pipe(
+    return this.http.post<SessionUser>(`${this.base}/login`, { email: identifier, password }).pipe(
       tap(user => localStorage.setItem(SESSION_KEY, JSON.stringify({ ...user, loginAt: Date.now() }))),
     );
   }
