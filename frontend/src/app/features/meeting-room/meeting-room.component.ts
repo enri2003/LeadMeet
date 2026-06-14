@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  ElementRef,
   inject,
   NgZone,
   OnDestroy,
   OnInit,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -25,6 +27,12 @@ const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun3.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
+];
+
+const AVATAR_PALETTE = [
+  '#1e3a5f','#5f1e1e','#3b1e5f','#1e5f3b',
+  '#5f3b1e','#1e5f5f','#5f1e3b','#1e3b5f',
+  '#4a1e5f','#2d4a1e','#5f4a1e','#1e4a5f',
 ];
 
 @Component({
@@ -47,23 +55,25 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     const s = this.authSvc.getSession();
     return s?.fullName || s?.name || 'Usuario';
   }
-
   private get sessionUserId(): string {
     return this.authSvc.getSession()?.userId ?? 'local-user';
   }
 
-  // ─── Room state ─────────────────────────────────────────────────────────────
+  // ─── Room state ──────────────────────────────────────────────────────────────
   roomId = '';
   isHost = false;
   participants: RoomParticipant[] = [];
   localParticipant: RoomParticipant | null = null;
   chatMessages: ChatMessage[] = [];
-  isChatOpen = true;
+  isChatOpen = false;
+  isPanelOpen = true;
+  isLocked = false;
 
   // ─── Controls ────────────────────────────────────────────────────────────────
   isMuted = true;
   isCameraOff = true;
   isSharingScreen = false;
+  screenShareWithAudio = false;
 
   // ─── Timer ───────────────────────────────────────────────────────────────────
   sessionDuration = '00:00:00';
@@ -73,28 +83,66 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
   // ─── Chat ────────────────────────────────────────────────────────────────────
   chatInput = '';
 
+  // ─── Notifications ───────────────────────────────────────────────────────────
+  joinNotification: string | null = null;
+
+  // ─── Emoji ───────────────────────────────────────────────────────────────────
+  showEmojiPicker = false;
+  floatingReactions: { id: number; emoji: string; name: string; x: number }[] = [];
+  private reactionCounter = 0;
+  readonly reactionEmojis = ['👍','👎','😂','❤️','😮','👏','🎉','🔥','😍','🤔','👋','💯','🙌','😢','🚀','✅'];
+
+  // ─── Audio detection ─────────────────────────────────────────────────────────
+  private speakingRafId?: number;
+  private audioCtx?: AudioContext;
+
   // ─── WebRTC ──────────────────────────────────────────────────────────────────
   private readonly peerConnections = new Map<string, RTCPeerConnection>();
+  private readonly screenSenders = new Map<string, RTCRtpSender[]>();
   private readonly subs: Subscription[] = [];
 
+  // ─── Screen share video ref ───────────────────────────────────────────────────
+  @ViewChild('screenVideoEl') set screenVideoRef(el: ElementRef<HTMLVideoElement> | undefined) {
+    if (el?.nativeElement) {
+      el.nativeElement.srcObject = this.screenShareStream ?? null;
+    }
+  }
+
   // ─── Computed ────────────────────────────────────────────────────────────────
-  get mainParticipant(): RoomParticipant | undefined {
-    const active = this.participants.find((p) => p.isActiveSpeaker);
-    return active ?? this.participants[0] ?? this.localParticipant ?? undefined;
-  }
 
-  get thumbnailParticipants(): RoomParticipant[] {
-    const mainId = this.mainParticipant?.socketId;
-    const all = this.localParticipant
-      ? [this.localParticipant, ...this.participants]
-      : this.participants;
-    return all.filter((p) => p.socketId !== mainId).slice(0, 5);
-  }
-
-  get allParticipantsForPanel(): RoomParticipant[] {
+  get allParticipants(): RoomParticipant[] {
     return this.localParticipant
       ? [this.localParticipant, ...this.participants]
       : this.participants;
+  }
+
+  get screenSharingParticipant(): RoomParticipant | undefined {
+    return this.allParticipants.find((p) => p.isSharingScreen);
+  }
+
+  get screenShareStream(): MediaStream | null | undefined {
+    const sharer = this.screenSharingParticipant;
+    if (!sharer) return null;
+    if (sharer.socketId === 'local') return this.media.currentScreenStream;
+    return sharer.screenStream;
+  }
+
+  /** Número de columnas del grid — siempre tiles iguales para todos */
+  get gridCols(): number {
+    const n = this.allParticipants.length;
+    if (n <= 1) return 1;
+    if (n === 2) return 2;
+    if (n === 3) return 3;
+    if (n === 4) return 2;
+    if (n <= 6) return 3;
+    return 4;
+  }
+
+  getAvatarColor(name: string): string {
+    const hash = (name || 'U').split('').reduce(
+      (acc, c, i) => acc + (c.codePointAt(0) ?? 0) * (i + 1), 0
+    );
+    return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
@@ -109,19 +157,19 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
         socketId: 'local',
         userId: this.sessionUserId,
         name: this.sessionName,
-        role: 'Anfitrión',
+        role: 'Participante',
         isMuted: true,
         isCameraOff: true,
         isActiveSpeaker: false,
         stream: localStream,
       };
-      this.cdr.markForCheck();
+      this.setupSpeakingDetection(localStream);
     } catch {
       this.localParticipant = {
         socketId: 'local',
         userId: this.sessionUserId,
         name: this.sessionName,
-        role: 'Anfitrión',
+        role: 'Participante',
         isMuted: true,
         isCameraOff: true,
         isActiveSpeaker: false,
@@ -131,11 +179,19 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     this.signaling.connect();
     this.registerSignalingHandlers();
 
-    await this.signaling.joinRoom({
+    const joinResult = await this.signaling.joinRoom({
       roomId: this.roomId,
       userId: this.sessionUserId,
       name: this.sessionName,
     });
+
+    if (!joinResult.success) {
+      alert('No puedes unirte — la sala está bloqueada por el anfitrión.');
+      this.router.navigate(['/']);
+      return;
+    }
+
+    this.refresh();
   }
 
   ngOnDestroy(): void {
@@ -145,41 +201,42 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     this.media.stopAll();
     this.signaling.disconnect();
     clearInterval(this.timerInterval);
+    if (this.speakingRafId) cancelAnimationFrame(this.speakingRafId);
+    this.audioCtx?.close().catch(() => null);
   }
 
-  // ─── Signaling handlers ──────────────────────────────────────────────────────
+  // ─── Signaling ───────────────────────────────────────────────────────────────
 
   private registerSignalingHandlers(): void {
-    // Room state: new user registers existing participants but does NOT initiate offers.
-    // Existing users will send offers via onUserJoined on their side.
     this.subs.push(
       this.signaling.onRoomState().subscribe((state) => {
         this.isHost = state.isHost;
-        for (const p of state.participants) {
-          this.addParticipant(p);
+        if (this.localParticipant) {
+          this.localParticipant.role = state.isHost ? 'Anfitrión' : 'Participante';
         }
+        for (const p of state.participants) this.addParticipant(p);
         this.refresh();
       }),
     );
 
-    // New user joined: existing users send offers to the newcomer
     this.subs.push(
       this.signaling.onUserJoined().subscribe((p) => {
         this.addParticipant(p);
         this.initiateOffer(p.socketId);
+        this.showNotification(`${p.name} se unió`);
         this.refresh();
       }),
     );
 
-    // User left
     this.subs.push(
       this.signaling.onUserLeft().subscribe(({ socketId }) => {
+        const p = this.participants.find((x) => x.socketId === socketId);
+        if (p) this.showNotification(`${p.name} salió`);
         this.removeParticipant(socketId);
         this.refresh();
       }),
     );
 
-    // Receive offer → send answer
     this.subs.push(
       this.signaling.onOffer().subscribe(async ({ offer, fromSocketId }) => {
         const pc = this.getOrCreatePeer(fromSocketId);
@@ -190,15 +247,15 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Receive answer
     this.subs.push(
       this.signaling.onAnswer().subscribe(async ({ answer, fromSocketId }) => {
         const pc = this.peerConnections.get(fromSocketId);
-        if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        if (pc?.signalingState === 'have-local-offer') {
+          await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        }
       }),
     );
 
-    // Receive ICE candidate
     this.subs.push(
       this.signaling.onIceCandidate().subscribe(async ({ candidate, fromSocketId }) => {
         const pc = this.peerConnections.get(fromSocketId);
@@ -206,7 +263,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Mute state changed
     this.subs.push(
       this.signaling.onMuteChanged().subscribe(({ socketId, isMuted }) => {
         const p = this.participants.find((x) => x.socketId === socketId);
@@ -214,7 +270,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Camera state changed
     this.subs.push(
       this.signaling.onCameraChanged().subscribe(({ socketId, isCameraOff }) => {
         const p = this.participants.find((x) => x.socketId === socketId);
@@ -222,7 +277,17 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Chat messages
+    this.subs.push(
+      this.signaling.onScreenShareChanged().subscribe(({ socketId, isSharingScreen }) => {
+        const p = this.participants.find((x) => x.socketId === socketId);
+        if (p) {
+          p.isSharingScreen = isSharingScreen;
+          if (!isSharingScreen) p.screenStream = undefined;
+          this.refresh();
+        }
+      }),
+    );
+
     this.subs.push(
       this.signaling.onChatMessage().subscribe((msg) => {
         this.chatMessages.push(msg);
@@ -230,41 +295,103 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
       }),
     );
 
-    // Meeting ended by host
+    this.subs.push(
+      this.signaling.onMuteRequest().subscribe(() => {
+        if (!this.isMuted) this.onToggleMute();
+      }),
+    );
+
+    this.subs.push(
+      this.signaling.onEmojiReaction().subscribe((data) => {
+        this.addFloatingReaction(data);
+      }),
+    );
+
+    this.subs.push(
+      this.signaling.onSpeakingChanged().subscribe(({ socketId, isSpeaking }) => {
+        const p = this.participants.find((x) => x.socketId === socketId);
+        if (p) { p.isActiveSpeaker = isSpeaking; this.refresh(); }
+      }),
+    );
+
+    this.subs.push(
+      this.signaling.onKicked().subscribe(() => {
+        this.cleanup();
+        this.router.navigate(['/']);
+      }),
+    );
+
+    this.subs.push(
+      this.signaling.onRoomLockChanged().subscribe(({ locked }) => {
+        this.isLocked = locked;
+        this.refresh();
+      }),
+    );
+
     this.subs.push(
       this.signaling.onMeetingEnded().subscribe(() => {
         this.cleanup();
         this.router.navigate(['/']);
       }),
     );
+
+    // Sucesión de anfitrión: cuando el host sale, el siguiente recibe este evento
+    this.subs.push(
+      this.signaling.onBecameHost().subscribe(() => {
+        this.isHost = true;
+        if (this.localParticipant) this.localParticipant.role = 'Anfitrión';
+        this.showNotification('Ahora eres el anfitrión');
+        this.refresh();
+      }),
+    );
+
+    // Actualizar rol de otros participantes cuando cambia el host
+    this.subs.push(
+      this.signaling.onParticipantRoleChanged().subscribe(({ socketId, role }) => {
+        const p = this.participants.find((x) => x.socketId === socketId);
+        if (p) { p.role = role; this.refresh(); }
+      }),
+    );
   }
 
-  // ─── WebRTC helpers ──────────────────────────────────────────────────────────
+  // ─── WebRTC ──────────────────────────────────────────────────────────────────
 
   private getOrCreatePeer(socketId: string): RTCPeerConnection {
-    if (this.peerConnections.has(socketId)) {
-      return this.peerConnections.get(socketId)!;
-    }
+    if (this.peerConnections.has(socketId)) return this.peerConnections.get(socketId)!;
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
-    // Add local tracks to the peer connection
+    // Add local camera+mic tracks
     const localStream = this.media.currentLocalStream;
     localStream?.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
-    // Relay ICE candidates
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) this.signaling.sendIceCandidate(socketId, candidate.toJSON());
     };
 
-    // Receive remote stream
-    pc.ontrack = ({ streams }) => {
+    // Re-negotiate when tracks are added/removed (e.g. screen share)
+    pc.onnegotiationneeded = async () => {
+      if (pc.signalingState !== 'stable') return;
+      try {
+        const offer = await pc.createOffer();
+        if (pc.signalingState !== 'stable') return;
+        await pc.setLocalDescription(offer);
+        this.signaling.sendOffer(socketId, offer);
+      } catch { /* ignore */ }
+    };
+
+    pc.ontrack = ({ streams, track }) => {
       this.zone.run(() => {
         const p = this.participants.find((x) => x.socketId === socketId);
-        if (p && streams[0]) {
+        if (!p || !streams[0]) return;
+        // First stream = camera stream; different stream ID = screen share
+        if (!p.stream) {
           p.stream = streams[0];
-          this.refresh();
+        } else if (streams[0].id !== p.stream.id) {
+          p.screenStream = streams[0];
+          p.isSharingScreen = true;
         }
+        this.refresh();
       });
     };
 
@@ -279,11 +406,9 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     this.signaling.sendOffer(targetSocketId, offer);
   }
 
-  // ─── Participant management ──────────────────────────────────────────────────
+  // ─── Participants ─────────────────────────────────────────────────────────────
 
-  private addParticipant(
-    p: Omit<RoomParticipant, 'isActiveSpeaker' | 'stream'>,
-  ): void {
+  private addParticipant(p: Omit<RoomParticipant, 'isActiveSpeaker' | 'stream' | 'screenStream'>): void {
     if (!this.participants.find((x) => x.socketId === p.socketId)) {
       this.participants.push({ ...p, isActiveSpeaker: false });
     }
@@ -294,9 +419,10 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     const pc = this.peerConnections.get(socketId);
     pc?.close();
     this.peerConnections.delete(socketId);
+    this.screenSenders.delete(socketId);
   }
 
-  // ─── Control handlers ────────────────────────────────────────────────────────
+  // ─── Controls ────────────────────────────────────────────────────────────────
 
   onToggleMute(): void {
     this.isMuted = this.media.toggleMute();
@@ -314,17 +440,68 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
   async onToggleScreenShare(): Promise<void> {
     if (this.isSharingScreen) {
+      // Stop: remove all screen share senders from every peer connection
+      this.peerConnections.forEach((pc, socketId) => {
+        (this.screenSenders.get(socketId) ?? []).forEach((s) => {
+          try { pc.removeTrack(s); } catch { /* ignore */ }
+        });
+        this.screenSenders.delete(socketId);
+      });
       this.media.stopScreenShare();
       this.isSharingScreen = false;
+      if (this.localParticipant) this.localParticipant.isSharingScreen = false;
+      this.signaling.toggleScreenShare(this.roomId, false);
     } else {
-      const screen = await this.media.startScreenShare();
-      this.isSharingScreen = screen !== null;
+      const screen = await this.media.startScreenShare(this.screenShareWithAudio);
+      if (!screen) return;
+
+      this.isSharingScreen = true;
+      if (this.localParticipant) this.localParticipant.isSharingScreen = true;
+      this.signaling.toggleScreenShare(this.roomId, true, screen.id);
+
+      // addTrack (not replaceTrack) so camera remains visible as a separate stream
+      this.peerConnections.forEach((pc, socketId) => {
+        const senders: RTCRtpSender[] = [];
+        screen.getTracks().forEach((t) => senders.push(pc.addTrack(t, screen)));
+        this.screenSenders.set(socketId, senders);
+      });
+
+      // Auto-stop when user closes via browser "Stop sharing" button
+      screen.getVideoTracks()[0].onended = () =>
+        this.zone.run(() => { if (this.isSharingScreen) this.onToggleScreenShare(); });
     }
+    this.refresh();
+  }
+
+  onMuteParticipant(socketId: string): void {
+    this.signaling.muteParticipant(this.roomId, socketId);
+  }
+
+  onMuteAll(): void {
+    this.signaling.muteAll(this.roomId);
+  }
+
+  onKickParticipant(socketId: string): void {
+    if (confirm('¿Expulsar a este participante?')) {
+      this.signaling.kickParticipant(this.roomId, socketId);
+    }
+  }
+
+  onToggleLock(): void {
+    this.isLocked = !this.isLocked;
+    this.signaling.toggleLock(this.roomId, this.isLocked);
+    this.refresh();
+  }
+
+  onTogglePanel(): void {
+    this.isPanelOpen = !this.isPanelOpen;
     this.refresh();
   }
 
   onToggleChat(): void {
     this.isChatOpen = !this.isChatOpen;
+    // Abrir el panel automáticamente si está cerrado
+    if (this.isChatOpen && !this.isPanelOpen) this.isPanelOpen = true;
     this.refresh();
   }
 
@@ -347,15 +524,75 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
+  toggleScreenShareAudio(): void {
+    this.screenShareWithAudio = !this.screenShareWithAudio;
+    this.refresh();
+  }
+
+  openEmojiPicker(): void {
+    this.showEmojiPicker = !this.showEmojiPicker;
+    this.refresh();
+  }
+
+  sendReaction(emoji: string): void {
+    this.showEmojiPicker = false;
+    this.signaling.sendEmojiReaction(this.roomId, emoji);
+    this.addFloatingReaction({ socketId: 'local', name: this.sessionName, emoji });
+  }
+
+  addFloatingReaction(data: { socketId: string; name: string; emoji: string }): void {
+    const id = ++this.reactionCounter;
+    const x = 5 + Math.random() * 65;
+    this.floatingReactions.push({ id, emoji: data.emoji, name: data.name, x });
+    this.zone.run(() => this.refresh());
+    setTimeout(() => {
+      this.floatingReactions = this.floatingReactions.filter((r) => r.id !== id);
+      this.zone.run(() => this.refresh());
+    }, 3500);
+  }
+
+  // ─── Speaking detection ───────────────────────────────────────────────────────
+
+  private setupSpeakingDetection(stream: MediaStream): void {
+    try {
+      this.audioCtx = new AudioContext();
+      const analyser = this.audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      const source = this.audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let lastSpeaking = false;
+      let lastEmit = 0;
+
+      const check = () => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        const speaking = !this.isMuted && avg > 12;
+        const now = Date.now();
+        if (speaking !== lastSpeaking && now - lastEmit > 300) {
+          lastSpeaking = speaking;
+          lastEmit = now;
+          if (this.localParticipant) {
+            this.localParticipant.isActiveSpeaker = speaking;
+            this.signaling.sendSpeaking(this.roomId, speaking);
+            this.zone.run(() => this.refresh());
+          }
+        }
+        this.speakingRafId = requestAnimationFrame(check);
+      };
+      this.speakingRafId = requestAnimationFrame(check);
+    } catch { /* AudioContext unavailable */ }
+  }
+
   // ─── Timer ───────────────────────────────────────────────────────────────────
 
   private startTimer(): void {
     this.sessionStart = Date.now();
     this.timerInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - this.sessionStart) / 1000);
-      const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
-      const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
-      const s = (elapsed % 60).toString().padStart(2, '0');
+      const e = Math.floor((Date.now() - this.sessionStart) / 1000);
+      const h = Math.floor(e / 3600).toString().padStart(2, '0');
+      const m = Math.floor((e % 3600) / 60).toString().padStart(2, '0');
+      const s = (e % 60).toString().padStart(2, '0');
       this.sessionDuration = `${h}:${m}:${s}`;
       this.cdr.markForCheck();
     }, 1000);
@@ -363,11 +600,20 @@ export class MeetingRoomComponent implements OnInit, OnDestroy {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+  private showNotification(msg: string): void {
+    this.joinNotification = msg;
+    this.refresh();
+    setTimeout(() => { this.joinNotification = null; this.refresh(); }, 3000);
+  }
+
   private cleanup(): void {
     this.peerConnections.forEach((pc) => pc.close());
     this.peerConnections.clear();
+    this.screenSenders.clear();
     this.media.stopAll();
     clearInterval(this.timerInterval);
+    if (this.speakingRafId) cancelAnimationFrame(this.speakingRafId);
+    this.audioCtx?.close().catch(() => null);
   }
 
   private refresh(): void {

@@ -13,16 +13,16 @@
   </div>
 }
 
-<!-- Floating controls bar — Task 4.3 -->
-<div class="relative flex items-center gap-3 px-5 py-3
-            bg-[#1d2022]/80 backdrop-blur-xl
+<!-- Floating controls bar -->
+<div class="relative flex items-center gap-2 px-4 py-3
+            bg-[#1d2022]/90 backdrop-blur-xl
             border border-white/10 rounded-2xl shadow-2xl">
 
   <!-- Microphone -->
   <button
     (click)="toggleMute.emit()"
     [ngClass]="isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-white/10 hover:bg-white/20'"
-    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
     [attr.title]="isMuted ? 'Activar micrófono' : 'Silenciar'"
   >
     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -41,7 +41,7 @@
   <button
     (click)="toggleCamera.emit()"
     [ngClass]="isCameraOff ? 'bg-red-600 hover:bg-red-700' : 'bg-white/10 hover:bg-white/20'"
-    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
     [attr.title]="isCameraOff ? 'Activar cámara' : 'Apagar cámara'"
   >
     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -55,24 +55,44 @@
     <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">CÁMARA</span>
   </button>
 
-  <!-- Screen share -->
+  <!-- Screen share + audio toggle -->
+  <div class="relative">
+    <button
+      (click)="toggleScreenShare.emit()"
+      [ngClass]="isSharingScreen ? 'bg-[#0055ff]' : 'bg-white/10 hover:bg-white/20'"
+      class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
+      [attr.title]="isSharingScreen ? 'Dejar de compartir' : 'Compartir pantalla'"
+    >
+      <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6zm8 9l-4-4h3V8h2v3h3l-4 4z"/>
+      </svg>
+      <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">COMPARTIR</span>
+    </button>
+    <!-- Audio toggle for screen share -->
+    <button
+      (click)="toggleScreenAudio.emit()"
+      [ngClass]="screenShareWithAudio ? 'bg-green-500 text-white' : 'bg-[#2a2f32] text-white/40'"
+      class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center
+             text-[9px] font-bold border border-black/50 transition-colors z-10"
+      title="Compartir con audio del sistema"
+    >🔊</button>
+  </div>
+
+  <!-- Emoji reactions -->
   <button
-    (click)="toggleScreenShare.emit()"
-    [ngClass]="isSharingScreen ? 'bg-[#0055ff]' : 'bg-white/10 hover:bg-white/20'"
-    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
-    [attr.title]="isSharingScreen ? 'Dejar de compartir' : 'Compartir pantalla'"
+    (click)="emojiPicker.emit()"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors min-w-[52px]"
+    title="Reacciones"
   >
-    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6zm8 9l-4-4h3V8h2v3h3l-4 4z"/>
-    </svg>
-    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">COMPARTIR</span>
+    <span class="text-xl leading-none">😊</span>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">REACCIÓN</span>
   </button>
 
   <!-- Chat -->
   <button
     (click)="toggleChat.emit()"
     [ngClass]="isChatOpen ? 'bg-[#0055ff]' : 'bg-white/10 hover:bg-white/20'"
-    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
     title="Chat"
   >
     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -81,12 +101,25 @@
     <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">CHAT</span>
   </button>
 
+  <!-- Participants panel -->
+  <button
+    (click)="togglePanel.emit()"
+    [ngClass]="isPanelOpen ? 'bg-[#0055ff]' : 'bg-white/10 hover:bg-white/20'"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
+    title="Participantes"
+  >
+    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+    </svg>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">PERSONAS</span>
+  </button>
+
   <!-- Copy invite link -->
   <button
     (click)="copyInviteLink()"
     [ngClass]="linkCopied ? 'bg-green-600' : 'bg-white/10 hover:bg-white/20'"
-    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors min-w-[56px]"
-    title="Copiar enlace de invitación"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
+    title="Copiar enlace"
   >
     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
       @if (linkCopied) {
@@ -105,8 +138,8 @@
   <button
     *ngIf="isHost"
     (click)="endMeeting.emit()"
-    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl
-           bg-red-600 hover:bg-red-700 transition-colors min-w-[56px]"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl
+           bg-red-600 hover:bg-red-700 transition-colors min-w-[52px]"
     title="Finalizar para todos"
   >
     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -118,9 +151,9 @@
   <!-- Leave call -->
   <button
     (click)="leaveCall.emit()"
-    class="flex flex-col items-center gap-1 px-5 py-2 rounded-xl
-           bg-red-600 hover:bg-red-700 transition-colors min-w-[64px]"
-    title="Salir de la reunión"
+    class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl
+           bg-red-600 hover:bg-red-700 transition-colors min-w-[56px]"
+    title="Salir"
   >
     <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
       <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>

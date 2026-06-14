@@ -47,12 +47,12 @@ export class MediaStreamService {
     return newCameraOff;
   }
 
-  async startScreenShare(): Promise<MediaStream | null> {
+  async startScreenShare(withAudio = false): Promise<MediaStream | null> {
     try {
       const mediaDevices = navigator.mediaDevices as MediaDevices & {
         getDisplayMedia(constraints: DisplayMediaStreamOptions): Promise<MediaStream>;
       };
-      const screen = await mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const screen = await mediaDevices.getDisplayMedia({ video: true, audio: withAudio });
       this._screenStream.next(screen);
       this._isSharingScreen.next(true);
       screen.getVideoTracks()[0].onended = () => this.stopScreenShare();
@@ -60,6 +60,10 @@ export class MediaStreamService {
     } catch {
       return null;
     }
+  }
+
+  get currentScreenStream(): MediaStream | null {
+    return this._screenStream.value;
   }
 
   stopScreenShare(): void {

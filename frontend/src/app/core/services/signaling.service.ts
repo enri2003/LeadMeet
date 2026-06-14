@@ -68,6 +68,34 @@ export class SignalingService implements OnDestroy {
     this.socket.emit('chat-message', { roomId, content });
   }
 
+  toggleScreenShare(roomId: string, isSharingScreen: boolean, screenStreamId?: string): void {
+    this.socket.emit('toggle-screen-share', { roomId, isSharingScreen, screenStreamId });
+  }
+
+  muteParticipant(roomId: string, targetSocketId: string): void {
+    this.socket.emit('mute-participant', { roomId, targetSocketId });
+  }
+
+  muteAll(roomId: string): void {
+    this.socket.emit('mute-all', { roomId });
+  }
+
+  kickParticipant(roomId: string, targetSocketId: string): void {
+    this.socket.emit('kick-participant', { roomId, targetSocketId });
+  }
+
+  toggleLock(roomId: string, locked: boolean): void {
+    this.socket.emit('toggle-lock', { roomId, locked });
+  }
+
+  sendEmojiReaction(roomId: string, emoji: string): void {
+    this.socket.emit('emoji-reaction', { roomId, emoji });
+  }
+
+  sendSpeaking(roomId: string, isSpeaking: boolean): void {
+    this.socket.emit('speaking', { roomId, isSpeaking });
+  }
+
   // ─── Observables ────────────────────────────────────────────────────────────
 
   onRoomState(): Observable<RoomStatePayload> {
@@ -108,6 +136,42 @@ export class SignalingService implements OnDestroy {
 
   onMeetingEnded(): Observable<{ endedBy: string }> {
     return this.fromEvent<{ endedBy: string }>('meeting-ended');
+  }
+
+  onScreenShareChanged(): Observable<{ socketId: string; isSharingScreen: boolean; screenStreamId?: string }> {
+    return this.fromEvent('participant-screen-share-changed');
+  }
+
+  onBecameHost(): Observable<void> {
+    return this.fromEvent('you-are-now-host');
+  }
+
+  onParticipantRoleChanged(): Observable<{ socketId: string; role: string }> {
+    return this.fromEvent('participant-role-changed');
+  }
+
+  onMuteRequest(): Observable<{ by: string }> {
+    return this.fromEvent('mute-request');
+  }
+
+  onEmojiReaction(): Observable<{ socketId: string; name: string; emoji: string }> {
+    return this.fromEvent('emoji-reaction');
+  }
+
+  onSpeakingChanged(): Observable<{ socketId: string; isSpeaking: boolean }> {
+    return this.fromEvent('participant-speaking');
+  }
+
+  onKicked(): Observable<{ by: string }> {
+    return this.fromEvent('you-were-kicked');
+  }
+
+  onJoinRejected(): Observable<{ reason: string }> {
+    return this.fromEvent('join-rejected');
+  }
+
+  onRoomLockChanged(): Observable<{ locked: boolean }> {
+    return this.fromEvent('room-locked');
   }
 
   get socketId(): string {

@@ -18,23 +18,26 @@ import { CommonModule } from '@angular/common';
   template: `
     <div class="relative w-full h-full bg-black rounded-2xl border border-white/5 overflow-hidden select-none">
 
-      <!-- Video element -->
+      <!-- Video element — local view is mirrored so it feels natural -->
       <video
         #videoEl
         autoplay
         playsinline
         [muted]="isLocal"
         [class.hidden]="isCameraOff"
+        [style.transform]="isLocal ? 'scaleX(-1)' : ''"
         class="w-full h-full object-cover"
       ></video>
 
       <!-- Avatar placeholder when camera is off -->
       <div *ngIf="isCameraOff"
-           class="absolute inset-0 flex items-center justify-center bg-[#1a1f21]">
-        <div class="w-16 h-16 rounded-full bg-[#2d3436] flex items-center justify-center
-                    text-white text-2xl font-semibold tracking-wide">
-          {{ initials }}
+           class="absolute inset-0 flex flex-col items-center justify-center"
+           [style.background]="avatarBg">
+        <div class="w-20 h-20 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg"
+             [style.background]="avatarColor + '55'">
+          <span class="text-white text-3xl font-bold" style="text-shadow: 0 2px 8px rgba(0,0,0,0.5)">{{ initials }}</span>
         </div>
+        <p class="text-white/60 text-xs font-medium mt-3 tracking-wide">{{ name }}</p>
       </div>
 
       <!-- Active speaker ring -->
@@ -69,6 +72,12 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
 
+  private static readonly PALETTE = [
+    '#1e3a5f','#5f1e1e','#3b1e5f','#1e5f3b',
+    '#5f3b1e','#1e5f5f','#5f1e3b','#1e3b5f',
+    '#4a1e5f','#2d4a1e','#5f4a1e','#1e4a5f',
+  ];
+
   get initials(): string {
     return (this.name || '?')
       .split(' ')
@@ -76,6 +85,15 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
       .slice(0, 2)
       .join('')
       .toUpperCase();
+  }
+
+  get avatarColor(): string {
+    const hash = (this.name || 'U').split('').reduce((acc, c, i) => acc + (c.codePointAt(0) ?? 0) * (i + 1), 0);
+    return VideoTileComponent.PALETTE[Math.abs(hash) % VideoTileComponent.PALETTE.length];
+  }
+
+  get avatarBg(): string {
+    return this.avatarColor + 'cc';
   }
 
   ngOnChanges(changes: SimpleChanges): void {

@@ -24,11 +24,17 @@ export class MeetingControlsComponent {
   @Input() isSharingScreen = false;
   @Input() isChatOpen = false;
   @Input() isHost = false;
+  @Input() isPanelOpen = true;
+  @Input() screenShareWithAudio = false;
+  @Input() isLocked = false;
 
   @Output() toggleMute = new EventEmitter<void>();
   @Output() toggleCamera = new EventEmitter<void>();
   @Output() toggleScreenShare = new EventEmitter<void>();
   @Output() toggleChat = new EventEmitter<void>();
+  @Output() togglePanel = new EventEmitter<void>();
+  @Output() toggleScreenAudio = new EventEmitter<void>();
+  @Output() emojiPicker = new EventEmitter<void>();
   @Output() leaveCall = new EventEmitter<void>();
   @Output() endMeeting = new EventEmitter<void>();
 

@@ -31,12 +31,11 @@ interface RoomParticipant {
 })
 export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  private readonly logger = new Logger(MeetingGateway.name);
+  private readonly logger = new Logger(WebRtcGateway.name);
 
-  // roomId → Map<socketId, RoomParticipant>
   private readonly rooms = new Map<string, Map<string, RoomParticipant>>();
-  // socketId → roomId  (for cleanup on disconnect)
   private readonly socketToRoom = new Map<string, string>();
+  private readonly lockedRooms = new Map<string, boolean>();
 
   constructor(
     private readonly meetingsService: MeetingsService,
@@ -70,6 +69,11 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const room = this.rooms.get(roomId)!;
     const isHost = room.size === 0;
+
+    if (!isHost && this.lockedRooms.get(roomId)) {
+      client.emit('join-rejected', { reason: 'La sala está bloqueada por el anfitrión' });
+      return { success: false, isHost: false };
+    }
 
     const participant: RoomParticipant = {
       socketId: client.id,
@@ -202,6 +206,105 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('emoji-reaction')
+  handleEmojiReaction(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; emoji: string },
+  ) {
+    const participant = this.rooms.get(data.roomId)?.get(client.id);
+    if (participant && data.emoji) {
+      this.server.to(data.roomId).emit('emoji-reaction', {
+        socketId: client.id,
+        name: participant.name,
+        emoji: data.emoji,
+      });
+    }
+  }
+
+  @SubscribeMessage('speaking')
+  handleSpeaking(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; isSpeaking: boolean },
+  ) {
+    client.to(data.roomId).emit('participant-speaking', {
+      socketId: client.id,
+      isSpeaking: data.isSpeaking,
+    });
+  }
+
+  @SubscribeMessage('kick-participant')
+  async handleKickParticipant(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; targetSocketId: string },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+    const target = room.get(data.targetSocketId);
+    if (!target) return;
+    room.delete(data.targetSocketId);
+    this.socketToRoom.delete(data.targetSocketId);
+    const targetSocket = this.server.sockets.sockets.get(data.targetSocketId);
+    if (targetSocket) targetSocket.leave(data.roomId);
+    this.server.to(data.targetSocketId).emit('you-were-kicked', { by: requester.name });
+    this.server.to(data.roomId).emit('user-left', { socketId: data.targetSocketId });
+    await this.meetingsService.recordLeave(data.roomId, target.userId, new Date()).catch(() => null);
+  }
+
+  @SubscribeMessage('mute-all')
+  handleMuteAll(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+    room.forEach((_, socketId) => {
+      if (socketId !== client.id) {
+        this.server.to(socketId).emit('mute-request', { by: requester.name });
+      }
+    });
+  }
+
+  @SubscribeMessage('toggle-lock')
+  handleToggleLock(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; locked: boolean },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+    this.lockedRooms.set(data.roomId, data.locked);
+    this.server.to(data.roomId).emit('room-locked', { locked: data.locked });
+  }
+
+  @SubscribeMessage('toggle-screen-share')
+  handleToggleScreenShare(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; isSharingScreen: boolean; screenStreamId?: string },
+  ) {
+    client.to(data.roomId).emit('participant-screen-share-changed', {
+      socketId: client.id,
+      isSharingScreen: data.isSharingScreen,
+      screenStreamId: data.screenStreamId,
+    });
+  }
+
+  @SubscribeMessage('mute-participant')
+  handleMuteParticipant(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string; targetSocketId: string },
+  ) {
+    const room = this.rooms.get(data.roomId);
+    if (!room) return;
+    const requester = room.get(client.id);
+    if (requester?.role !== 'Anfitrión') return;
+    this.server.to(data.targetSocketId).emit('mute-request', { by: requester.name });
+  }
+
   // ─── Chat ───────────────────────────────────────────────────────────────────
 
   @SubscribeMessage('chat-message')
@@ -241,6 +344,17 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (room.size === 0) {
       this.rooms.delete(roomId);
+      this.lockedRooms.delete(roomId);
+    } else if (participant.role === 'Anfitrión') {
+      // Transfer host to the next participant in the room
+      const nextHost = [...room.values()][0];
+      nextHost.role = 'Anfitrión';
+      this.server.to(nextHost.socketId).emit('you-are-now-host');
+      this.server.to(roomId).emit('participant-role-changed', {
+        socketId: nextHost.socketId,
+        role: 'Anfitrión',
+      });
+      this.logger.log(`Host transferred to ${nextHost.name} in room ${roomId}`);
     }
 
     this.logger.log(`${participant.name} left room ${roomId}`);

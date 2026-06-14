@@ -6,7 +6,9 @@ export interface RoomParticipant {
   isMuted: boolean;
   isCameraOff: boolean;
   isActiveSpeaker: boolean;
+  isSharingScreen?: boolean;
   stream?: MediaStream;
+  screenStream?: MediaStream;
 }
 
 export interface ChatMessage {
