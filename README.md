@@ -564,3 +564,4 @@ Sala:       bg-[#101415]
 Botón Entrar:    bg-[#0055ff] hover:bg-[#0044cc]  text-white  rounded-lg   px-6 py-2
 Botón Compartir: bg-white     hover:bg-gray-200    text-black  rounded-xl  px-8 py-3
 ```
+//

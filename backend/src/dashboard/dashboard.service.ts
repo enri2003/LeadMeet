@@ -14,7 +14,7 @@ export class DashboardService {
   async getStats(userId: string): Promise<DashboardStatsDto> {
     const now = new Date();
 
-    // --- Completed meetings total ---
+
     const completed = await this.meetingRepo.find({
       where: { createdById: userId, status: 'completed' },
       relations: { participants: { user: true } },

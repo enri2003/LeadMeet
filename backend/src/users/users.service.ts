@@ -19,7 +19,7 @@ export class UsersService {
     let settings = await this.settingsRepo.findOne({ where: { userId } });
 
     if (!settings) {
-      // Auto-create default settings for the user
+   
       settings = this.settingsRepo.create({ userId });
       await this.settingsRepo.save(settings);
     }

@@ -12,7 +12,7 @@ export class WsJwtGuard implements CanActivate {
     const token = this.extractToken(client);
 
     if (!token) {
-      // Dev mode: allow guest sessions without a token
+   
       client.data.user = {
         id: `guest-${client.id}`,
         name: 'Invitado',
