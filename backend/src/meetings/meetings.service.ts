@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Meeting } from './entities/meeting.entity';
 import { MeetingParticipant } from './entities/meeting-participant.entity';
 import { MeetingFilterStatus } from './dto/query-meetings.dto';
+import { CreateMeetingDto } from './dto/create-meeting.dto';
 
 export type MeetingWithDuration = Meeting & { durationMinutes: number };
 
@@ -17,6 +18,24 @@ export class MeetingsService {
     @InjectRepository(MeetingParticipant)
     private readonly participantRepo: Repository<MeetingParticipant>,
   ) {}
+
+  // ─── Create meeting ────────────────────────────────────────────────────────
+
+  async createMeeting(dto: CreateMeetingDto): Promise<Meeting> {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const meeting = this.meetingRepo.create({
+      title: dto.title,
+      description: dto.description ?? null,
+      type: dto.type,
+      startTime: new Date(dto.startTime),
+      endTime: new Date(dto.endTime),
+      isConfidential: dto.isConfidential ?? false,
+      meetingCode: code,
+      createdById: dto.userId,
+      status: 'scheduled',
+    });
+    return this.meetingRepo.save(meeting);
+  }
 
   // ─── Module 2 methods ──────────────────────────────────────────────────────
 

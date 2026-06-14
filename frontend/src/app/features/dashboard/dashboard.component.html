@@ -45,6 +45,7 @@
           Unirse a demo
         </button>
         <button
+          (click)="openNewMeeting()"
           class="flex items-center gap-2 bg-white text-gray-900 text-sm font-semibold rounded-xl px-5 py-2.5 hover:bg-gray-100 transition-colors"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -90,3 +91,117 @@
 
   </ng-container>
 </div>
+
+<!-- Modal Nueva Reunión -->
+@if (showNewMeetingModal) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       style="background: rgba(0,0,0,0.7);"
+       (click)="showNewMeetingModal = false">
+    <div class="w-full max-w-md rounded-2xl p-6"
+         style="background:#181c1e; border:1px solid rgba(255,255,255,0.08);"
+         (click)="$event.stopPropagation()">
+
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-white">Nueva reunión</h2>
+        <button (click)="showNewMeetingModal = false" class="text-white/30 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-4">
+
+        <!-- Título -->
+        <div>
+          <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Título *</label>
+          <input
+            [(ngModel)]="newMeeting.title"
+            type="text"
+            placeholder="Reunión de estrategia Q3"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none"
+            style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
+            onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+            onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+          />
+        </div>
+
+        <!-- Tipo -->
+        <div>
+          <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Tipo</label>
+          <select
+            [(ngModel)]="newMeeting.type"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none"
+            style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);">
+            @for (t of meetingTypes; track t.value) {
+              <option [value]="t.value" style="background:#1d2022">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Fechas -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Inicio *</label>
+            <input
+              [(ngModel)]="newMeeting.startTime"
+              type="datetime-local"
+              class="w-full rounded-xl px-3 py-3 text-sm text-white outline-none"
+              style="background:#1d2022; border:1px solid rgba(255,255,255,0.08); color-scheme:dark;"
+              onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Fin *</label>
+            <input
+              [(ngModel)]="newMeeting.endTime"
+              type="datetime-local"
+              class="w-full rounded-xl px-3 py-3 text-sm text-white outline-none"
+              style="background:#1d2022; border:1px solid rgba(255,255,255,0.08); color-scheme:dark;"
+              onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            />
+          </div>
+        </div>
+
+        <!-- Descripción -->
+        <div>
+          <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Descripción</label>
+          <textarea
+            [(ngModel)]="newMeeting.description"
+            placeholder="Opcional..."
+            rows="2"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none resize-none"
+            style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
+            onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+            onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+          ></textarea>
+        </div>
+
+        <!-- Confidencial -->
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="newMeeting.isConfidential" class="w-4 h-4 accent-blue-500"/>
+          <span class="text-sm text-white/60">Reunión confidencial</span>
+        </label>
+
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <button
+          (click)="showNewMeetingModal = false"
+          class="flex-1 py-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white transition-colors"
+          style="background:rgba(255,255,255,0.05);">
+          Cancelar
+        </button>
+        <button
+          (click)="onCreateMeeting()"
+          [disabled]="!newMeeting.title || !newMeeting.startTime || !newMeeting.endTime || creatingMeeting"
+          class="flex-1 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style="background:white; color:black;">
+          @if (creatingMeeting) { Creando... } @else { Crear reunión }
+        </button>
+      </div>
+    </div>
+  </div>
+}

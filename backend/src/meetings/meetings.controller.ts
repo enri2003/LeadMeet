@@ -1,12 +1,20 @@
-import { Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MeetingsService } from './meetings.service';
-import { MeetingFilterStatus } from './dto/query-meetings.dto';
+import type { MeetingFilterStatus } from './dto/query-meetings.dto';
+import { CreateMeetingDto } from './dto/create-meeting.dto';
 
 @ApiTags('meetings')
 @Controller('meetings')
 export class MeetingsController {
   constructor(private readonly meetingsSvc: MeetingsService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear nueva reunión' })
+  createMeeting(@Body() dto: CreateMeetingDto) {
+    return this.meetingsSvc.createMeeting(dto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Listar reuniones filtradas por estado y fecha (Task 3.4)' })
