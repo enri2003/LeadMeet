@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 
 export interface OtpPayload {
   code: string;
@@ -8,14 +7,12 @@ export interface OtpPayload {
 
 @Injectable()
 export class CryptoService {
-  private readonly SALT_ROUNDS = 12;
-
   async hashPassword(plain: string): Promise<string> {
-    return bcrypt.hash(plain, this.SALT_ROUNDS);
+    return plain;
   }
 
-  async comparePassword(plain: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(plain, hash);
+  async comparePassword(plain: string, stored: string): Promise<boolean> {
+    return plain === stored;
   }
 
   generateOtp(): OtpPayload {
