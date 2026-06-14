@@ -31,21 +31,27 @@ export class AuthService {
     private readonly mailSvc: MailService,
   ) {}
 
-  async login(dto: LoginDto): Promise<{ message: string; email: string }> {
+  async login(dto: LoginDto): Promise<SessionUser> {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
 
     if (!user?.passwordHash) {
       throw new UnauthorizedException('Credenciales inválidas.');
     }
+    if (!user.isVerified) {
+      throw new UnauthorizedException('Cuenta no verificada. Revisa tu correo para activarla.');
+    }
 
     const valid = await this.cryptoSvc.comparePassword(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Credenciales inválidas.');
 
-    const { code, expiresAt } = this.cryptoSvc.generateOtp();
-    await this.userRepo.update(user.id, { otpCode: code, otpExpiresAt: expiresAt });
-    await this.mailSvc.sendLoginOtp(user.email, user.fullName ?? user.name, code);
-
-    return { message: 'Código de verificación enviado a tu correo.', email: user.email };
+    return {
+      userId: user.id,
+      name: user.name,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+    };
   }
 
   async verifyLoginOtp(dto: VerifyOtpDto): Promise<SessionUser> {
@@ -75,20 +81,25 @@ export class AuthService {
     }
 
     const passwordHash = await this.cryptoSvc.hashPassword(dto.password);
+    const { code, expiresAt } = this.cryptoSvc.generateOtp();
 
     const user = this.userRepo.create({
       name: dto.fullName,
       fullName: dto.fullName,
       email: dto.email,
       passwordHash,
-      isVerified: true,
+      isVerified: false,
+      otpCode: code,
+      otpExpiresAt: expiresAt,
       role: 'Member',
     });
 
     const saved = await this.userRepo.save(user);
 
+    await this.mailSvc.sendOtp(dto.email, dto.fullName, code);
+
     return {
-      message: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.',
+      message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
       userId: saved.id,
     };
   }

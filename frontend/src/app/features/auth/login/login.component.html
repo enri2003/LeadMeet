@@ -1,32 +1,26 @@
-<!-- LoginComponent — Split Executive Layout + 2FA OTP -->
+<!-- LoginComponent — Split Executive Layout -->
 <div class="min-h-screen flex" style="font-family:'Geist','Inter',ui-sans-serif,system-ui,sans-serif;">
 
   <!-- ══ LEFT PANEL: Branding ══ -->
   <div class="hidden lg:flex flex-col w-[58%] relative overflow-hidden"
        style="background: linear-gradient(145deg, #080b0d 0%, #0a0f12 40%, #090e14 100%);">
 
-    <!-- Subtle grid -->
     <div class="absolute inset-0 pointer-events-none"
          style="background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
                 background-size: 48px 48px;"></div>
 
-    <!-- Blue glow orb top-right -->
     <div class="absolute -top-24 right-0 w-[500px] h-[500px] rounded-full pointer-events-none"
          style="background: radial-gradient(circle, rgba(0,85,255,0.12) 0%, transparent 70%);"></div>
-
-    <!-- Blue glow orb bottom-left -->
     <div class="absolute bottom-0 -left-20 w-[400px] h-[400px] rounded-full pointer-events-none"
          style="background: radial-gradient(circle, rgba(0,85,255,0.07) 0%, transparent 70%);"></div>
 
-    <!-- Decorative shapes -->
     <div class="absolute top-32 right-16 w-24 h-24 rounded-2xl border border-white/[0.04] rotate-12 pointer-events-none"></div>
     <div class="absolute top-48 right-32 w-12 h-12 rounded-xl border border-[#0055ff]/10 -rotate-6 pointer-events-none"></div>
     <div class="absolute bottom-40 left-16 w-20 h-20 rounded-2xl border border-white/[0.03] rotate-45 pointer-events-none"></div>
     <div class="absolute bottom-24 right-20 w-3 h-3 rounded-full pointer-events-none" style="background:#0055ff; opacity:0.3;"></div>
     <div class="absolute top-72 left-28 w-2 h-2 rounded-full pointer-events-none" style="background:#0055ff; opacity:0.2;"></div>
 
-    <!-- Content -->
     <div class="relative flex-1 flex flex-col px-14 py-12">
 
       <!-- Logo -->
@@ -59,7 +53,6 @@
 
       <!-- Features -->
       <div class="flex flex-col gap-5 mb-auto">
-
         <div class="flex items-start gap-4">
           <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                style="background: rgba(0,85,255,0.1); border: 1px solid rgba(0,85,255,0.2);">
@@ -69,7 +62,7 @@
           </div>
           <div>
             <p class="text-white font-semibold text-sm">Seguridad de nivel corporativo</p>
-            <p class="text-white/35 text-xs mt-0.5 leading-relaxed">Cifrado extremo a extremo con verificación de doble factor en cada acceso.</p>
+            <p class="text-white/35 text-xs mt-0.5 leading-relaxed">Verificación de cuenta por correo y cifrado extremo a extremo.</p>
           </div>
         </div>
 
@@ -120,7 +113,7 @@
     </div>
   </div>
 
-  <!-- ══ RIGHT PANEL ══ -->
+  <!-- ══ RIGHT PANEL: Login Form ══ -->
   <div class="flex-1 flex flex-col items-center justify-center px-8 py-10"
        style="background:#101415; border-left: 1px solid rgba(255,255,255,0.04);">
 
@@ -141,233 +134,140 @@
     <!-- Form card -->
     <div class="w-full max-w-[340px]">
 
-      <!-- ── PASO 1: Credenciales ── -->
-      @if (step === 1) {
+      <div class="mb-8">
+        <h2 class="text-2xl font-black text-white tracking-tight">Bienvenido de vuelta</h2>
+        <p class="text-white/35 text-sm mt-1.5">Accede a tu portal ejecutivo Lead Meet.</p>
+      </div>
 
-        <div class="mb-8">
-          <h2 class="text-2xl font-black text-white tracking-tight">Bienvenido de vuelta</h2>
-          <p class="text-white/35 text-sm mt-1.5">Accede a tu portal ejecutivo Lead Meet.</p>
+      @if (serverError) {
+        <div class="mb-5 flex items-start gap-3 rounded-xl px-4 py-3"
+             style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);">
+          <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-sm text-red-300">{{ serverError }}</p>
         </div>
+      }
 
-        @if (serverError) {
-          <div class="mb-5 flex items-start gap-3 rounded-xl px-4 py-3"
-               style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);">
-            <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-            </svg>
-            <p class="text-sm text-red-300">{{ serverError }}</p>
-          </div>
-        }
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
 
-        <form [formGroup]="credForm" (ngSubmit)="onSubmit()" novalidate>
-
-          <!-- Email -->
-          <div class="mb-4">
-            <label for="login-email" class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-              Correo Corporativo
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none"
-                   fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-              </svg>
-              <input
-                id="login-email"
-                formControlName="email"
-                type="email"
-                placeholder="director@empresa.com"
-                autocomplete="email"
-                class="w-full rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
-                style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
-                [ngClass]="fc['email'].invalid && fc['email'].touched ? 'border-red-500/50' : ''"
-                onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
-                onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
-              />
-            </div>
-            @if (fc['email'].invalid && fc['email'].touched) {
-              <p class="mt-1.5 text-xs text-red-400">Ingresa un correo válido.</p>
-            }
-          </div>
-
-          <!-- Password -->
-          <div class="mb-7">
-            <label for="login-password" class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-              Contraseña
-            </label>
-            <div class="relative">
-              <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none"
-                   fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-              </svg>
-              <input
-                id="login-password"
-                formControlName="password"
-                [type]="showPassword ? 'text' : 'password'"
-                placeholder="••••••••••"
-                autocomplete="new-password"
-                class="w-full rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
-                style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
-                [ngClass]="fc['password'].invalid && fc['password'].touched ? 'border-red-500/50' : ''"
-                onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
-                onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
-              />
-              <button type="button" (click)="showPassword = !showPassword"
-                      class="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
-                @if (showPassword) {
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                  </svg>
-                } @else {
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                  </svg>
-                }
-              </button>
-            </div>
-            @if (fc['password'].invalid && fc['password'].touched) {
-              <p class="mt-1.5 text-xs text-red-400">Mínimo 8 caracteres.</p>
-            }
-          </div>
-
-          <button
-            type="submit"
-            [disabled]="isLoading"
-            class="w-full flex items-center justify-center gap-2.5 font-bold py-3.5 rounded-xl text-sm tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style="background:white; color:black;">
-            @if (isLoading) {
-              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              Verificando...
-            } @else {
-              Continuar
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-              </svg>
-            }
-          </button>
-
-        </form>
-
-        <div class="flex items-center gap-3 my-7">
-          <div class="flex-1 h-px" style="background:rgba(255,255,255,0.07);"></div>
-          <span class="text-white/20 text-xs font-medium">o</span>
-          <div class="flex-1 h-px" style="background:rgba(255,255,255,0.07);"></div>
-        </div>
-
-        <p class="text-center text-sm" style="color:rgba(255,255,255,0.35);">
-          ¿Primera vez aquí?&nbsp;
-          <a routerLink="/register"
-             class="font-semibold transition-colors"
-             style="color:rgba(255,255,255,0.75);"
-             onmouseover="this.style.color='#0055ff'"
-             onfocus="this.style.color='#0055ff'"
-             onmouseout="this.style.color='rgba(255,255,255,0.75)'"
-             onblur="this.style.color='rgba(255,255,255,0.75)'">
-            Crear cuenta ejecutiva
-          </a>
-        </p>
-
-        <p class="text-center text-xs mt-3" style="color:rgba(255,255,255,0.2);">
-          <a routerLink="/verify-otp" class="transition-colors hover:text-white/40">
-            ¿Código de verificación de cuenta pendiente?
-          </a>
-        </p>
-
-      } @else {
-
-        <!-- Ícono de seguridad -->
-        <div class="flex justify-center mb-6">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center"
-               style="background: rgba(0,85,255,0.1); border: 1px solid rgba(0,85,255,0.25);">
-            <svg class="w-7 h-7" fill="none" stroke="#0055ff" stroke-width="1.8" viewBox="0 0 24 24">
+        <!-- Email -->
+        <div class="mb-4">
+          <label for="login-email" class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
+            Correo Corporativo
+          </label>
+          <div class="relative">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none"
+                 fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
-          </div>
-        </div>
-
-        <div class="mb-8 text-center">
-          <h2 class="text-2xl font-black text-white tracking-tight">Verifica tu identidad</h2>
-          <p class="text-white/35 text-sm mt-2 leading-relaxed">
-            Enviamos un código de 6 dígitos a
-          </p>
-          <p class="text-white/70 text-sm font-semibold mt-1">{{ pendingEmail }}</p>
-          <p class="text-white/25 text-xs mt-1">El código expira en 5 minutos.</p>
-        </div>
-
-        @if (serverError) {
-          <div class="mb-5 flex items-start gap-3 rounded-xl px-4 py-3"
-               style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);">
-            <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-            </svg>
-            <p class="text-sm text-red-300">{{ serverError }}</p>
-          </div>
-        }
-
-        <form [formGroup]="otpForm" (ngSubmit)="onVerifyOtp()" novalidate>
-
-          <div class="mb-7">
-            <label for="login-otp" class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-              Código de verificación
-            </label>
             <input
-              id="login-otp"
-              formControlName="code"
-              type="text"
-              inputmode="numeric"
-              maxlength="6"
-              placeholder="000000"
-              autocomplete="one-time-code"
-              class="w-full rounded-xl px-4 py-4 text-center text-2xl font-black text-white placeholder-white/15 outline-none tracking-[0.5em] transition-all"
+              id="login-email"
+              formControlName="email"
+              type="email"
+              placeholder="director@empresa.com"
+              autocomplete="email"
+              class="w-full rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
               style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
-              [ngClass]="fo['code'].invalid && fo['code'].touched ? 'border-red-500/50' : ''"
+              [ngClass]="f['email'].invalid && f['email'].touched ? 'border-red-500/50' : ''"
               onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
               onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
             />
-            @if (fo['code'].invalid && fo['code'].touched) {
-              <p class="mt-1.5 text-xs text-red-400">Ingresa los 6 dígitos del código.</p>
-            }
           </div>
+          @if (f['email'].invalid && f['email'].touched) {
+            <p class="mt-1.5 text-xs text-red-400">Ingresa un correo válido.</p>
+          }
+        </div>
 
-          <button
-            type="submit"
-            [disabled]="isLoading"
-            class="w-full flex items-center justify-center gap-2.5 font-bold py-3.5 rounded-xl text-sm tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style="background:white; color:black;">
-            @if (isLoading) {
-              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              Verificando código...
-            } @else {
-              Entrar al Portal
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-              </svg>
-            }
-          </button>
-
-        </form>
+        <!-- Password -->
+        <div class="mb-7">
+          <label for="login-password" class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
+            Contraseña
+          </label>
+          <div class="relative">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25 pointer-events-none"
+                 fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <input
+              id="login-password"
+              formControlName="password"
+              [type]="showPassword ? 'text' : 'password'"
+              placeholder="••••••••••"
+              autocomplete="new-password"
+              class="w-full rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-white/20 outline-none transition-all"
+              style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
+              [ngClass]="f['password'].invalid && f['password'].touched ? 'border-red-500/50' : ''"
+              onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            />
+            <button type="button" (click)="showPassword = !showPassword"
+                    class="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
+              @if (showPassword) {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              } @else {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              }
+            </button>
+          </div>
+          @if (f['password'].invalid && f['password'].touched) {
+            <p class="mt-1.5 text-xs text-red-400">Mínimo 8 caracteres.</p>
+          }
+        </div>
 
         <button
-          type="button"
-          (click)="backToLogin()"
-          class="w-full mt-4 py-3 rounded-xl text-sm font-medium transition-all"
-          style="color:rgba(255,255,255,0.4); background:transparent;"
-          onmouseover="this.style.color='rgba(255,255,255,0.7)'"
-          onmouseout="this.style.color='rgba(255,255,255,0.4)'">
-          ← Volver al inicio de sesión
+          type="submit"
+          [disabled]="isLoading"
+          class="w-full flex items-center justify-center gap-2.5 font-bold py-3.5 rounded-xl text-sm tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          style="background:white; color:black;">
+          @if (isLoading) {
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Verificando...
+          } @else {
+            Entrar al Portal
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          }
         </button>
 
-      }
+      </form>
+
+      <div class="flex items-center gap-3 my-7">
+        <div class="flex-1 h-px" style="background:rgba(255,255,255,0.07);"></div>
+        <span class="text-white/20 text-xs font-medium">o</span>
+        <div class="flex-1 h-px" style="background:rgba(255,255,255,0.07);"></div>
+      </div>
+
+      <p class="text-center text-sm" style="color:rgba(255,255,255,0.35);">
+        ¿Primera vez aquí?&nbsp;
+        <a routerLink="/register"
+           class="font-semibold transition-colors"
+           style="color:rgba(255,255,255,0.75);"
+           onmouseover="this.style.color='#0055ff'"
+           onfocus="this.style.color='#0055ff'"
+           onmouseout="this.style.color='rgba(255,255,255,0.75)'"
+           onblur="this.style.color='rgba(255,255,255,0.75)'">
+          Crear cuenta ejecutiva
+        </a>
+      </p>
+
+      <p class="text-center text-xs mt-3" style="color:rgba(255,255,255,0.2);">
+        <a routerLink="/verify-otp" class="transition-colors hover:text-white/40">
+          ¿Código de verificación de cuenta pendiente?
+        </a>
+      </p>
 
     </div>
 
-    <!-- Footer -->
     <div class="mt-14 text-center" style="color:rgba(255,255,255,0.12);">
       <p class="text-[11px]">© 2024 Lead Meet Inc. · Portal Ejecutivo</p>
       <p class="text-[10px] mt-1">Todos los derechos reservados · Política de privacidad</p>

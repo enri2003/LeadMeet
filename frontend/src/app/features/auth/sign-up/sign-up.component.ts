@@ -31,9 +31,9 @@ export class SignUpComponent implements OnInit {
   showConfirm = false;
 
   constructor(
-    private fb: FormBuilder,
-    private authSvc: AuthService,
-    private router: Router,
+    private readonly fb: FormBuilder,
+    private readonly authSvc: AuthService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -73,7 +73,7 @@ export class SignUpComponent implements OnInit {
     this.authSvc.register({ fullName, email, password }).subscribe({
       next: () => {
         this.isLoading = false;
-        this.router.navigate(['/login']);
+        this.router.navigate(['/verify-otp'], { queryParams: { email } });
       },
       error: (err) => {
         this.isLoading = false;

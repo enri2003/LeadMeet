@@ -11,12 +11,7 @@ import { AuthService } from '../../../core/services/auth/auth.service';
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
-  step: 1 | 2 = 1;
-  pendingEmail = '';
-
-  credForm: FormGroup;
-  otpForm: FormGroup;
-
+  form: FormGroup;
   isLoading = false;
   serverError: string | null = null;
   showPassword = false;
@@ -26,61 +21,30 @@ export class LoginComponent {
     private readonly authSvc: AuthService,
     private readonly router: Router,
   ) {
-    this.credForm = this.fb.group({
+    this.form = this.fb.group({
       email:    ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
-
-    this.otpForm = this.fb.group({
-      code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
-    });
   }
 
-  get fc() { return this.credForm.controls; }
-  get fo() { return this.otpForm.controls; }
+  get f() { return this.form.controls; }
 
   onSubmit(): void {
-    if (this.credForm.invalid || this.isLoading) return;
+    if (this.form.invalid || this.isLoading) return;
     this.isLoading = true;
     this.serverError = null;
 
-    const { email, password } = this.credForm.value as { email: string; password: string };
+    const { email, password } = this.form.value as { email: string; password: string };
 
     this.authSvc.login(email, password).subscribe({
-      next: (res) => {
-        this.isLoading = false;
-        this.pendingEmail = res.email;
-        this.step = 2;
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.serverError = err?.error?.message ?? 'Error al iniciar sesión. Verifica tus credenciales.';
-      },
-    });
-  }
-
-  onVerifyOtp(): void {
-    if (this.otpForm.invalid || this.isLoading) return;
-    this.isLoading = true;
-    this.serverError = null;
-
-    const { code } = this.otpForm.value as { code: string };
-
-    this.authSvc.verifyLoginOtp(this.pendingEmail, code).subscribe({
       next: () => {
         this.isLoading = false;
         this.router.navigate(['/']);
       },
       error: (err) => {
         this.isLoading = false;
-        this.serverError = err?.error?.message ?? 'Código incorrecto o expirado.';
+        this.serverError = err?.error?.message ?? 'Error al iniciar sesión. Verifica tus credenciales.';
       },
     });
-  }
-
-  backToLogin(): void {
-    this.step = 1;
-    this.serverError = null;
-    this.otpForm.reset();
   }
 }

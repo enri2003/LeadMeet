@@ -37,8 +37,10 @@ export class AuthService {
 
   constructor(private readonly http: HttpClient) {}
 
-  login(email: string, password: string): Observable<{ message: string; email: string }> {
-    return this.http.post<{ message: string; email: string }>(`${this.base}/login`, { email, password });
+  login(email: string, password: string): Observable<SessionUser> {
+    return this.http.post<SessionUser>(`${this.base}/login`, { email, password }).pipe(
+      tap(user => localStorage.setItem(SESSION_KEY, JSON.stringify({ ...user, loginAt: Date.now() }))),
+    );
   }
 
   verifyLoginOtp(email: string, code: string): Observable<SessionUser> {
