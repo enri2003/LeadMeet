@@ -108,20 +108,27 @@ export class DashboardComponent implements OnInit {
       next: () => {
         this.creatingMeeting = false;
         this.showNewMeetingModal = false;
-        this.ngOnInit();
+        this.loadStats();
       },
       error: () => { this.creatingMeeting = false; },
     });
   }
 
   ngOnInit(): void {
-    this.dashboardService.getStats().subscribe({
+    this.loadStats();
+  }
+
+  loadStats(): void {
+    this.loading = true;
+    this.error = null;
+    const session = this.authSvc.getSession();
+    this.dashboardService.getStats(session?.userId).subscribe({
       next: (data) => {
         this.stats = data;
         this.loading = false;
       },
       error: () => {
-        this.error = 'No se pudo cargar el dashboard. Verifique que el backend esté activo.';
+        this.error = 'No se pudieron cargar las estadísticas. Verifica que el backend esté activo.';
         this.loading = false;
       },
     });

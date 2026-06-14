@@ -21,7 +21,7 @@ export class MeetingLog {
   @JoinColumn({ name: 'meeting_id' })
   meeting: Meeting | null;
 
-  @Column({ name: 'meeting_id', nullable: true })
+  @Column({ name: 'meeting_id', type: 'uuid', nullable: true })
   meetingId: string | null;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
@@ -34,7 +34,7 @@ export class MeetingLog {
   @Column({ name: 'room_id', length: 100 })
   roomId: string;
 
-  @Column({ name: 'event_type', length: 50 })
+  @Column({ name: 'event_type', type: 'varchar', length: 50 })
   eventType: LogEventType;
 
   @Column({ name: 'started_at', type: 'timestamptz', default: () => 'NOW()' })
@@ -43,7 +43,7 @@ export class MeetingLog {
   @Column({ name: 'stopped_at', type: 'timestamptz', nullable: true })
   stoppedAt: Date | null;
 
-  @Column({ name: 'source_type', length: 20, nullable: true })
+  @Column({ name: 'source_type', type: 'varchar', length: 20, nullable: true })
   sourceType: SourceType | null;
 
   @Column({ name: 'with_audio', default: false })

@@ -16,7 +16,7 @@ export class User {
   @Column({ length: 100 })
   name: string;
 
-  @Column({ name: 'full_name', length: 150, nullable: true })
+  @Column({ name: 'full_name', type: 'varchar', length: 150, nullable: true })
   fullName: string | null;
 
   @Column({ length: 100, default: 'Member' })
@@ -31,7 +31,7 @@ export class User {
   @Column({ name: 'is_verified', type: 'boolean', default: false })
   isVerified: boolean;
 
-  @Column({ name: 'otp_code', length: 6, nullable: true })
+  @Column({ name: 'otp_code', type: 'varchar', length: 6, nullable: true })
   otpCode: string | null;
 
   @Column({ name: 'otp_expires_at', type: 'timestamptz', nullable: true })

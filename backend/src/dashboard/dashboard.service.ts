@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { Meeting } from '../meetings/entities/meeting.entity';
 import { DashboardStatsDto, UpcomingMeetingDto } from './dto/dashboard-stats.dto';
 
@@ -17,12 +17,13 @@ export class DashboardService {
 
     const completed = await this.meetingRepo.find({
       where: { createdById: userId, status: 'completed' },
-      relations: { participants: { user: true } },
+      relations: ['participants', 'participants.user'],
     });
 
     const totalMinutes = completed.reduce((acc, m) => {
+      if (!m.endTime || !m.startTime) return acc;
       const diff = (m.endTime.getTime() - m.startTime.getTime()) / 60000;
-      return acc + diff;
+      return acc + Math.max(0, diff);
     }, 0);
 
     // --- % change today vs yesterday ---

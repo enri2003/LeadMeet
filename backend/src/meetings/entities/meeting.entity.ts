@@ -40,7 +40,7 @@ export class Meeting {
   @Column({ name: 'is_confidential', default: false })
   isConfidential: boolean;
 
-  @Column({ name: 'meeting_code', length: 50, nullable: true, unique: true })
+  @Column({ name: 'meeting_code', type: 'varchar', length: 50, nullable: true, unique: true })
   meetingCode: string | null;
 
   @ManyToOne(() => User, (u) => u.meetings)
