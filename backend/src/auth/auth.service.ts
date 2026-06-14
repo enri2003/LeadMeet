@@ -34,11 +34,8 @@ export class AuthService {
   async login(dto: LoginDto): Promise<{ message: string; email: string }> {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
 
-    if (!user || !user.passwordHash) {
+    if (!user?.passwordHash) {
       throw new UnauthorizedException('Credenciales inválidas.');
-    }
-    if (!user.isVerified) {
-      throw new UnauthorizedException('Cuenta no verificada. Revisa tu correo para activarla.');
     }
 
     const valid = await this.cryptoSvc.comparePassword(dto.password, user.passwordHash);
@@ -78,25 +75,20 @@ export class AuthService {
     }
 
     const passwordHash = await this.cryptoSvc.hashPassword(dto.password);
-    const { code, expiresAt } = this.cryptoSvc.generateOtp();
 
     const user = this.userRepo.create({
       name: dto.fullName,
       fullName: dto.fullName,
       email: dto.email,
       passwordHash,
-      isVerified: false,
-      otpCode: code,
-      otpExpiresAt: expiresAt,
+      isVerified: true,
       role: 'Member',
     });
 
     const saved = await this.userRepo.save(user);
 
-    await this.mailSvc.sendOtp(dto.email, dto.fullName, code);
-
     return {
-      message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
+      message: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.',
       userId: saved.id,
     };
   }

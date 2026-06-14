@@ -29,6 +29,7 @@ export interface SessionUser {
 }
 
 const SESSION_KEY = 'lm_session';
+const SESSION_DURATION = 15 * 60 * 1000; // 15 minutos
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -42,7 +43,7 @@ export class AuthService {
 
   verifyLoginOtp(email: string, code: string): Observable<SessionUser> {
     return this.http.post<SessionUser>(`${this.base}/verify-login-otp`, { email, code }).pipe(
-      tap(user => localStorage.setItem(SESSION_KEY, JSON.stringify(user))),
+      tap(user => localStorage.setItem(SESSION_KEY, JSON.stringify({ ...user, loginAt: Date.now() }))),
     );
   }
 
@@ -64,7 +65,13 @@ export class AuthService {
 
   getSession(): SessionUser | null {
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as SessionUser) : null;
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as SessionUser & { loginAt?: number };
+    if (!stored.loginAt || Date.now() - stored.loginAt > SESSION_DURATION) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return stored;
   }
 
   isAuthenticated(): boolean {

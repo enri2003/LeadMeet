@@ -43,7 +43,6 @@ export class SignUpComponent implements OnInit {
         email: ['', [Validators.required, Validators.email]],
         password: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required],
-        acceptTerms: [false, Validators.requiredTrue],
       },
       { validators: passwordsMatch },
     );
@@ -74,7 +73,7 @@ export class SignUpComponent implements OnInit {
     this.authSvc.register({ fullName, email, password }).subscribe({
       next: () => {
         this.isLoading = false;
-        this.router.navigate(['/verify-otp'], { queryParams: { email } });
+        this.router.navigate(['/login']);
       },
       error: (err) => {
         this.isLoading = false;

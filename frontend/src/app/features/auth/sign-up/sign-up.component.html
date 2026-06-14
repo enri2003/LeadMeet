@@ -46,7 +46,7 @@
             autocomplete="name"
             class="w-full bg-[#1d2022] border border-white/10 rounded-lg pl-10 pr-4 py-3 text-gray-200 placeholder-gray-600 text-sm
                    focus:outline-none focus:border-[#0055ff] transition-colors"
-            [class.border-red-500/60]="f['fullName'].invalid && f['fullName'].touched"
+            [ngClass]="f['fullName'].invalid && f['fullName'].touched ? 'border-red-500/60' : ''"
           />
         </div>
         @if (f['fullName'].invalid && f['fullName'].touched) {
@@ -75,7 +75,7 @@
             autocomplete="email"
             class="w-full bg-[#1d2022] border border-white/10 rounded-lg pl-10 pr-4 py-3 text-gray-200 placeholder-gray-600 text-sm
                    focus:outline-none focus:border-[#0055ff] transition-colors"
-            [class.border-red-500/60]="f['email'].invalid && f['email'].touched"
+            [ngClass]="f['email'].invalid && f['email'].touched ? 'border-red-500/60' : ''"
           />
         </div>
         @if (f['email'].invalid && f['email'].touched) {
@@ -107,7 +107,7 @@
               autocomplete="new-password"
               class="w-full bg-[#1d2022] border border-white/10 rounded-lg pl-10 pr-9 py-3 text-gray-200 placeholder-gray-600 text-sm
                      focus:outline-none focus:border-[#0055ff] transition-colors"
-              [class.border-red-500/60]="f['password'].invalid && f['password'].touched"
+              [ngClass]="f['password'].invalid && f['password'].touched ? 'border-red-500/60' : ''"
             />
             <button type="button" (click)="showPassword = !showPassword"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
@@ -146,7 +146,7 @@
               autocomplete="new-password"
               class="w-full bg-[#1d2022] border border-white/10 rounded-lg pl-10 pr-9 py-3 text-gray-200 placeholder-gray-600 text-sm
                      focus:outline-none focus:border-[#0055ff] transition-colors"
-              [class.border-red-500/60]="(f['confirmPassword'].invalid && f['confirmPassword'].touched) || passwordMismatch"
+              [ngClass]="(f['confirmPassword'].invalid && f['confirmPassword'].touched) || passwordMismatch ? 'border-red-500/60' : ''"
             />
             <button type="button" (click)="showConfirm = !showConfirm"
               class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
@@ -168,39 +168,11 @@
         </div>
       </div>
 
-      <!-- TÉRMINOS Y CONDICIONES -->
-      <div class="mb-6">
-        <label class="flex items-start gap-3 cursor-pointer group">
-          <div class="relative mt-0.5 shrink-0">
-            <input formControlName="acceptTerms" type="checkbox"
-              class="sr-only peer"/>
-            <div class="w-4 h-4 rounded border border-white/20 bg-[#1d2022]
-                        peer-checked:bg-[#0055ff] peer-checked:border-[#0055ff]
-                        transition-colors flex items-center justify-center">
-              @if (f['acceptTerms'].value) {
-                <svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-              }
-            </div>
-          </div>
-          <span class="text-xs text-gray-400 leading-relaxed">
-            Acepto los
-            <a href="#" class="text-[#0055ff] hover:underline font-medium">Términos de servicio</a>
-            y la
-            <a href="#" class="text-[#0055ff] hover:underline font-medium">Política de privacidad</a>.
-          </span>
-        </label>
-        @if (f['acceptTerms'].invalid && f['acceptTerms'].touched) {
-          <p class="mt-1.5 text-xs text-red-400">Debes aceptar los términos para continuar.</p>
-        }
-      </div>
-
       <!-- BOTÓN CREAR CUENTA -->
       <button
         type="submit"
         [disabled]="isLoading"
-        class="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200
+        class="w-full mt-2 bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200
                transition-all duration-200 flex items-center justify-center gap-2
                disabled:opacity-50 disabled:cursor-not-allowed text-sm tracking-wider uppercase">
         @if (isLoading) {
