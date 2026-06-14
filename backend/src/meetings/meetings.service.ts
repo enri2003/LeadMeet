@@ -52,9 +52,13 @@ export class MeetingsService {
     this.logger.log(`Recorded leave: user=${userId} meeting=${meetingId}`);
   }
 
-  async endMeeting(meetingId: string): Promise<void> {
-    await this.meetingRepo.update({ id: meetingId }, { status: 'completed' });
-    this.logger.log(`Meeting ${meetingId} marked as completed`);
+  async endMeeting(meetingId: string, actualDurationMinutes?: number): Promise<void> {
+    const update: any = { status: 'completed' };
+    if (actualDurationMinutes !== undefined) {
+      update.actualDurationMinutes = Math.max(0, actualDurationMinutes);
+    }
+    await this.meetingRepo.update({ id: meetingId }, update);
+    this.logger.log(`Meeting ${meetingId} marked as completed (duration: ${actualDurationMinutes ?? 'N/A'} min)`);
   }
 
   async findByCode(meetingCode: string): Promise<Meeting | null> {

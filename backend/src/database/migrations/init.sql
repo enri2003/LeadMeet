@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS meetings (
   end_time      TIMESTAMPTZ NOT NULL,
   is_confidential BOOLEAN NOT NULL DEFAULT FALSE,
   meeting_code  VARCHAR(50) UNIQUE,
+  actual_duration_minutes INTEGER DEFAULT NULL,
   created_by    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS meeting_participants (
 CREATE INDEX IF NOT EXISTS idx_meetings_status        ON meetings(status);
 CREATE INDEX IF NOT EXISTS idx_meetings_start_time    ON meetings(start_time);
 CREATE INDEX IF NOT EXISTS idx_meetings_created_by    ON meetings(created_by);
+CREATE INDEX IF NOT EXISTS idx_meetings_actual_duration ON meetings(actual_duration_minutes);
 CREATE INDEX IF NOT EXISTS idx_participants_meeting   ON meeting_participants(meeting_id);
 CREATE INDEX IF NOT EXISTS idx_participants_user      ON meeting_participants(user_id);
 

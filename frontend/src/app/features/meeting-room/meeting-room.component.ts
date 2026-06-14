@@ -668,7 +668,9 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   onEndMeeting(): void {
-    this.signaling.endMeeting(this.roomId);
+    // Calculate duration in seconds
+    const durationSeconds = Math.floor((Date.now() - this.sessionStart) / 1000);
+    this.signaling.endMeeting(this.roomId, durationSeconds);
     this.cleanup();
     this.router.navigate(['/']);
   }

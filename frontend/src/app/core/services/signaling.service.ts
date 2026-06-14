@@ -48,8 +48,8 @@ export class SignalingService implements OnDestroy {
     this.socket.emit('leave-room', { roomId });
   }
 
-  endMeeting(roomId: string): void {
-    this.socket.emit('end-meeting', { roomId });
+  endMeeting(roomId: string, durationSeconds?: number): void {
+    this.socket.emit('end-meeting', { roomId, durationSeconds });
   }
 
   sendOffer(targetSocketId: string, offer: RTCSessionDescriptionInit): void {

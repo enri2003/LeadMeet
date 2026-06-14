@@ -21,6 +21,10 @@ export class DashboardService {
     });
 
     const totalMinutes = completed.reduce((acc, m) => {
+      // Use actual duration if recorded, otherwise calculate from start/end times
+      if (m.actualDurationMinutes !== null && m.actualDurationMinutes !== undefined) {
+        return acc + Math.max(0, m.actualDurationMinutes);
+      }
       if (!m.endTime || !m.startTime) return acc;
       const diff = (m.endTime.getTime() - m.startTime.getTime()) / 60000;
       return acc + Math.max(0, diff);

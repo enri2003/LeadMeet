@@ -236,7 +236,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('end-meeting')
   async handleEndMeeting(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: { roomId: string; durationSeconds?: number },
   ) {
     const room = this.rooms.get(data.roomId);
     if (!room) return;
@@ -244,7 +244,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const participant = room.get(client.id);
     if (participant?.role !== 'Anfitrión') return;
 
-    await this.meetingsService.endMeeting(data.roomId).catch(() => null);
+    const durationMinutes = data.durationSeconds ? Math.round(data.durationSeconds / 60) : undefined;
+    await this.meetingsService.endMeeting(data.roomId, durationMinutes).catch(() => null);
 
     this.server.to(data.roomId).emit('meeting-ended', { endedBy: participant.name });
 
@@ -258,7 +259,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.rooms.delete(data.roomId);
     this.waitingRoomEnabled.delete(data.roomId);
 
-    this.logger.log(`Meeting ${data.roomId} ended by host ${participant.name}`);
+    this.logger.log(`Meeting ${data.roomId} ended by host ${participant.name} (duration: ${durationMinutes ?? 'N/A'} min)`);
   }
 
   // ─── WebRTC signaling ───────────────────────────────────────────────────────

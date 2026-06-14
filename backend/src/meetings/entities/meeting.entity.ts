@@ -43,6 +43,9 @@ export class Meeting {
   @Column({ name: 'meeting_code', type: 'varchar', length: 50, nullable: true, unique: true })
   meetingCode: string | null;
 
+  @Column({ name: 'actual_duration_minutes', type: 'int', nullable: true, default: null })
+  actualDurationMinutes: number | null;
+
   @ManyToOne(() => User, (u) => u.meetings)
   @JoinColumn({ name: 'created_by' })
   createdBy: User;

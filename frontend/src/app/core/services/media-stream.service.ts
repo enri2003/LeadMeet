@@ -16,34 +16,52 @@ export class MediaStreamService {
   readonly isSharingScreen$ = this._isSharingScreen.asObservable();
 
   async initLocalStream(): Promise<MediaStream> {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-      audio: { echoCancellation: true, noiseSuppression: true },
-    });
-    // Join with mic and camera OFF by default
-    stream.getAudioTracks().forEach((t) => (t.enabled = false));
-    stream.getVideoTracks().forEach((t) => (t.enabled = false));
-    this._isMuted.next(true);
-    this._isCameraOff.next(true);
-    this._localStream.next(stream);
-    return stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+      // Join with mic and camera OFF by default
+      stream.getAudioTracks().forEach((t) => (t.enabled = false));
+      stream.getVideoTracks().forEach((t) => (t.enabled = false));
+      this._isMuted.next(true);
+      this._isCameraOff.next(true);
+      this._localStream.next(stream);
+      console.log('✅ Local stream initialized successfully');
+      return stream;
+    } catch (err) {
+      console.error('❌ Failed to initialize local stream:', err);
+      // Create a dummy stream without audio/video but keep the service functional
+      throw err;
+    }
   }
 
   toggleMute(): boolean {
     const stream = this._localStream.value;
-    if (!stream) return this._isMuted.value;
+    if (!stream) {
+      console.warn('⚠️ No stream to toggle mute');
+      return this._isMuted.value;
+    }
     const newMuted = !this._isMuted.value;
     stream.getAudioTracks().forEach((t) => (t.enabled = !newMuted));
     this._isMuted.next(newMuted);
+    console.log(`🔊 Mute toggled: ${newMuted}`);
     return newMuted;
   }
 
   toggleCamera(): boolean {
     const stream = this._localStream.value;
-    if (!stream) return this._isCameraOff.value;
+    if (!stream) {
+      console.warn('⚠️ No stream to toggle camera');
+      return this._isCameraOff.value;
+    }
     const newCameraOff = !this._isCameraOff.value;
     stream.getVideoTracks().forEach((t) => (t.enabled = !newCameraOff));
     this._isCameraOff.next(newCameraOff);
+    console.log(`📹 Camera toggled: ${!newCameraOff ? 'ON' : 'OFF'}`, {
+      videoTracks: stream.getVideoTracks().length,
+      enabled: !newCameraOff,
+    });
     return newCameraOff;
   }
 
