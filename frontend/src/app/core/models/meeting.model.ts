@@ -23,6 +23,7 @@ export interface MeetingDto {
   createdById: string;
   participants: MeetingParticipantDto[];
   durationMinutes: number;
+  userDurationMinutes?: number;
 }
 
 export const TYPE_LABELS: Record<MeetingType, string> = {

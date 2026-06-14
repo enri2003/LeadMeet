@@ -46,6 +46,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly lockedRooms = new Map<string, boolean>();
   private readonly waitingRoomEnabled = new Map<string, boolean>();
   private readonly waitingRooms = new Map<string, Map<string, WaitingEntry>>();
+  // Maps roomId (meetingCode or UUID) → actual meeting.id (UUID) for FK-safe DB ops
+  private readonly roomToMeetingId = new Map<string, string>();
 
   constructor(
     private readonly meetingsService: MeetingsService,
@@ -81,7 +83,26 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const room = this.rooms.get(roomId)!;
-    const isHost = room.size === 0;
+
+    // Resolve meeting and cache the real UUID for FK-safe DB operations
+    let isCreator = false;
+    if (!this.roomToMeetingId.has(roomId)) {
+      try {
+        const meeting = await this.meetingsService.findByCodeOrId(roomId);
+        if (meeting) {
+          this.roomToMeetingId.set(roomId, meeting.id);
+          isCreator = meeting.createdById === userId;
+        }
+      } catch { /* fallback */ }
+    } else {
+      // Meeting already looked up; still need to check creator
+      try {
+        const meeting = await this.meetingsService.findByCodeOrId(roomId);
+        if (meeting) isCreator = meeting.createdById === userId;
+      } catch { /* ignore */ }
+    }
+
+    const isHost = isCreator || room.size === 0;
 
     if (!isHost) {
       if (this.lockedRooms.get(roomId)) {
@@ -109,6 +130,22 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         this.logger.log(`${name} waiting for admission in room ${roomId}`);
         return { success: false, isHost: false, waiting: true };
+      }
+    }
+
+    // If the creator joins after someone else was temporarily "host", transfer the role
+    if (isCreator && room.size > 0) {
+      const prevHost = [...room.values()].find((p) => p.role === 'Anfitrión');
+      if (prevHost) {
+        prevHost.role = 'Participante';
+        this.server.to(prevHost.socketId).emit('participant-role-changed', {
+          socketId: prevHost.socketId,
+          role: 'Participante',
+        });
+        this.server.to(roomId).emit('participant-role-changed', {
+          socketId: prevHost.socketId,
+          role: 'Participante',
+        });
       }
     }
 
@@ -142,7 +179,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.to(roomId).emit('user-joined', participant);
     }
 
-    await this.meetingsService.recordJoin(roomId, userId, participant.joinedAt).catch(() => null);
+    const meetingId = this.roomToMeetingId.get(roomId) ?? roomId;
+    await this.meetingsService.recordJoin(meetingId, userId, participant.joinedAt).catch(() => null);
 
     this.logger.log(`${name} joined room ${roomId} (isHost=${isHost})`);
     return { success: true, isHost };
@@ -195,7 +233,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .except(data.targetSocketId)
       .emit('user-joined', participant);
 
-    await this.meetingsService.recordJoin(data.roomId, waiting.userId, new Date()).catch(() => null);
+    const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
+    await this.meetingsService.recordJoin(meetingId, waiting.userId, new Date()).catch(() => null);
     this.logger.log(`${waiting.name} admitted to room ${data.roomId}`);
   }
 
@@ -258,7 +297,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ? Math.round(data.durationSeconds / 60)
       : undefined;
 
-    await this.meetingsService.endMeeting(data.roomId, durationMinutes).catch(() => null);
+    const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
+    await this.meetingsService.endMeeting(meetingId, durationMinutes).catch(() => null);
 
     this.server.to(data.roomId).emit('meeting-ended', { endedBy: participant.name });
 
@@ -271,6 +311,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     room.forEach((_, socketId) => this.socketToRoom.delete(socketId));
     this.rooms.delete(data.roomId);
     this.waitingRoomEnabled.delete(data.roomId);
+    this.roomToMeetingId.delete(data.roomId);
 
     this.logger.log(
       `Meeting ${data.roomId} ended by host ${participant.name} (duration: ${durationMinutes ?? 'N/A'} min)`,
@@ -387,7 +428,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.server.in(data.targetSocketId).socketsLeave(data.roomId);
     this.server.to(data.roomId).emit('user-left', { socketId: data.targetSocketId });
 
-    await this.meetingsService.recordLeave(data.roomId, target.userId, new Date()).catch(() => null);
+    const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
+    await this.meetingsService.recordLeave(meetingId, target.userId, new Date()).catch(() => null);
     this.logger.log(`${target.name} kicked from room ${data.roomId} by ${requester.name}`);
   }
 
@@ -479,12 +521,17 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to(roomId).emit('user-left', { socketId: client.id });
 
-    await this.meetingsService.recordLeave(roomId, participant.userId, new Date()).catch(() => null);
+    const meetingId = this.roomToMeetingId.get(roomId) ?? roomId;
+    await this.meetingsService.recordLeave(meetingId, participant.userId, new Date()).catch(() => null);
 
     if (room.size === 0) {
+      // Auto-complete meeting when last person leaves
+      await this.meetingsService.endMeeting(meetingId).catch(() => null);
+
       this.rooms.delete(roomId);
       this.lockedRooms.delete(roomId);
       this.waitingRoomEnabled.delete(roomId);
+      this.roomToMeetingId.delete(roomId);
 
       const waitingRoom = this.waitingRooms.get(roomId);
       waitingRoom?.forEach((_, socketId) => {

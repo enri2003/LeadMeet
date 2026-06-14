@@ -6,8 +6,11 @@ import {
   OnInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CalendarApiService } from '../../core/services/calendar-api.service';
+import { MeetingsApiService } from '../../core/services/meetings-api.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import {
   CalendarDay,
   CalendarEventItem,
@@ -16,20 +19,24 @@ import {
   EVENT_TYPE_DOT,
   MONTH_NAMES,
 } from '../../core/models/calendar.model';
+import { MeetingType } from '../../core/models/meeting.model';
 import { DailyAgendaSidebarComponent } from './components/daily-agenda-sidebar/daily-agenda-sidebar.component';
 import { QuickNotesComponent } from './components/quick-notes/quick-notes.component';
 
 @Component({
   selector: 'app-executive-calendar',
   standalone: true,
-  imports: [CommonModule, DailyAgendaSidebarComponent, QuickNotesComponent],
+  imports: [CommonModule, FormsModule, DailyAgendaSidebarComponent, QuickNotesComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './executive-calendar.component.html',
 })
 export class ExecutiveCalendarComponent implements OnInit {
-  private readonly api    = inject(CalendarApiService);
-  private readonly cdr    = inject(ChangeDetectorRef);
-  private readonly router = inject(Router);
+  private readonly api         = inject(CalendarApiService);
+  private readonly meetingsApi = inject(MeetingsApiService);
+  private readonly authSvc     = inject(AuthService);
+  private readonly cdr         = inject(ChangeDetectorRef);
+  private readonly router      = inject(Router);
+  private readonly route       = inject(ActivatedRoute);
 
   // Current view month
   currentYear  = new Date().getFullYear();
@@ -45,6 +52,24 @@ export class ExecutiveCalendarComponent implements OnInit {
   noteSaving  = false;
   noteSaved   = false;
   loading     = false;
+
+  // Create meeting modal
+  showCreateModal = false;
+  creatingMeeting = false;
+  newMeeting = {
+    title: '',
+    type: 'general' as MeetingType,
+    startTime: '',
+    endTime: '',
+    description: '',
+    isConfidential: false,
+  };
+  readonly meetingTypes: { value: MeetingType; label: string }[] = [
+    { value: 'general',     label: 'General' },
+    { value: 'strategy',    label: 'Estrategia' },
+    { value: 'negotiation', label: 'Negociación' },
+    { value: 'interview',   label: 'Entrevista' },
+  ];
 
   readonly monthNames   = MONTH_NAMES;
   readonly dayHeaders   = DAY_HEADERS;
@@ -91,6 +116,13 @@ export class ExecutiveCalendarComponent implements OnInit {
   ngOnInit(): void {
     this.loadMonth();
     this.loadNote();
+    // Open create modal if redirected from dashboard with ?create=1
+    this.route.queryParamMap.subscribe((params) => {
+      if (params.get('create') === '1') {
+        this.openCreateModal();
+        this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      }
+    });
   }
 
   // ─── Month navigation ────────────────────────────────────────────────────────
@@ -143,8 +175,49 @@ export class ExecutiveCalendarComponent implements OnInit {
   }
 
   onSchedule(): void {
-    // Navigate to meetings page — extend later with a create-meeting modal
-    this.router.navigate(['/meetings']);
+    this.openCreateModal();
+  }
+
+  openCreateModal(): void {
+    const d = this.selectedDate;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    this.newMeeting = {
+      title: '',
+      type: 'general',
+      startTime: `${dateStr}T09:00`,
+      endTime: `${dateStr}T10:00`,
+      description: '',
+      isConfidential: false,
+    };
+    this.showCreateModal = true;
+    this.cdr.markForCheck();
+  }
+
+  onCreateMeeting(): void {
+    if (!this.newMeeting.title || !this.newMeeting.startTime || !this.newMeeting.endTime) return;
+    this.creatingMeeting = true;
+    const session = this.authSvc.getSession();
+    this.meetingsApi.createMeeting({
+      title: this.newMeeting.title,
+      type: this.newMeeting.type,
+      description: this.newMeeting.description || undefined,
+      isConfidential: this.newMeeting.isConfidential,
+      startTime: new Date(this.newMeeting.startTime).toISOString(),
+      endTime: new Date(this.newMeeting.endTime).toISOString(),
+      userId: session?.userId ?? '',
+    }).subscribe({
+      next: () => {
+        this.creatingMeeting = false;
+        this.showCreateModal = false;
+        this.loadMonth(); // Refresh calendar
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.creatingMeeting = false;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────────────

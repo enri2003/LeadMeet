@@ -17,17 +17,17 @@
      class="bg-[#1d2022] border border-white/5 rounded-2xl overflow-hidden">
 
   <!-- Table header -->
-  <div class="grid grid-cols-[2fr_1fr_0.7fr_0.8fr_auto] gap-4 px-6 py-3 border-b border-white/5 bg-white/[0.02]">
+  <div class="grid grid-cols-[2fr_1fr_0.9fr_0.8fr_auto] gap-4 px-6 py-3 border-b border-white/5 bg-white/[0.02]">
     <span class="text-white/30 text-[10px] uppercase tracking-widest font-semibold">Reunión</span>
     <span class="text-white/30 text-[10px] uppercase tracking-widest font-semibold">Fecha</span>
-    <span class="text-white/30 text-[10px] uppercase tracking-widest font-semibold">Duración</span>
+    <span class="text-white/30 text-[10px] uppercase tracking-widest font-semibold">Tu tiempo</span>
     <span class="text-white/30 text-[10px] uppercase tracking-widest font-semibold">Participantes</span>
     <span class="text-white/30 text-[10px] uppercase tracking-widest font-semibold">Acción</span>
   </div>
 
   <!-- Rows -->
   <div *ngFor="let m of meetings; let last = last"
-       class="grid grid-cols-[2fr_1fr_0.7fr_0.8fr_auto] gap-4 items-center px-6 py-4 hover:bg-white/[0.02] transition-colors"
+       class="grid grid-cols-[2fr_1fr_0.9fr_0.8fr_auto] gap-4 items-center px-6 py-4 hover:bg-white/[0.02] transition-colors"
        [ngClass]="!last ? 'border-b border-white/5' : ''">
 
     <!-- Meeting name + type -->
@@ -53,9 +53,13 @@
       <p class="text-white/30 text-xs mt-0.5">{{ formatTime(m.startTime) }}</p>
     </div>
 
-    <!-- Duration -->
+    <!-- User's time in meeting -->
     <div>
-      <p class="text-white/70 text-sm">{{ formatDuration(m.durationMinutes) }}</p>
+      <p class="text-white/70 text-sm">{{ formatDuration(m.userDurationMinutes ?? m.durationMinutes) }}</p>
+      <p *ngIf="m.userDurationMinutes !== undefined && m.userDurationMinutes !== m.durationMinutes"
+         class="text-white/25 text-[10px] mt-0.5">
+        de {{ formatDuration(m.durationMinutes) }} total
+      </p>
     </div>
 
     <!-- Participants count -->

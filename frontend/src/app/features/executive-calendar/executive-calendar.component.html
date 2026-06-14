@@ -9,7 +9,16 @@
       </svg>
       <h1 class="text-white font-bold text-base">Calendario Ejecutivo</h1>
     </div>
-    <span class="text-white/30 text-xs font-semibold uppercase tracking-widest">LEAD MEET</span>
+    <div class="flex items-center gap-3">
+      <button (click)="openCreateModal()"
+              class="flex items-center gap-2 bg-white text-gray-900 text-sm font-semibold rounded-xl px-4 py-2 hover:bg-gray-100 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Nueva reunión
+      </button>
+      <span class="text-white/30 text-xs font-semibold uppercase tracking-widest">LEAD MEET</span>
+    </div>
   </header>
 
   <!-- ══ MAIN ══ -->
@@ -143,3 +152,94 @@
 
   </main>
 </div>
+
+<!-- Modal Nueva Reunión Programada -->
+@if (showCreateModal) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       style="background: rgba(0,0,0,0.75);"
+       (click)="showCreateModal = false">
+    <div class="w-full max-w-md rounded-2xl p-6"
+         style="background:#181c1e; border:1px solid rgba(255,255,255,0.08);"
+         (click)="$event.stopPropagation()">
+
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-white">Programar reunión</h2>
+        <button (click)="showCreateModal = false" class="text-white/30 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Título *</label>
+          <input
+            [(ngModel)]="newMeeting.title"
+            type="text"
+            placeholder="Reunión de estrategia Q3"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none"
+            style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
+            onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+            onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+          />
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Tipo</label>
+          <select
+            [(ngModel)]="newMeeting.type"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none"
+            style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);">
+            @for (t of meetingTypes; track t.value) {
+              <option [value]="t.value" style="background:#1d2022">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Inicio *</label>
+            <input
+              [(ngModel)]="newMeeting.startTime"
+              type="datetime-local"
+              class="w-full rounded-xl px-3 py-3 text-sm text-white outline-none"
+              style="background:#1d2022; border:1px solid rgba(255,255,255,0.08); color-scheme:dark;"
+              onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            />
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Fin *</label>
+            <input
+              [(ngModel)]="newMeeting.endTime"
+              type="datetime-local"
+              class="w-full rounded-xl px-3 py-3 text-sm text-white outline-none"
+              style="background:#1d2022; border:1px solid rgba(255,255,255,0.08); color-scheme:dark;"
+              onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+              onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+            />
+          </div>
+        </div>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="newMeeting.isConfidential" class="w-4 h-4 accent-blue-500"/>
+          <span class="text-sm text-white/60">Reunión confidencial</span>
+        </label>
+      </div>
+
+      <div class="flex gap-2 mt-6">
+        <button
+          (click)="showCreateModal = false"
+          class="flex-1 py-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white transition-colors"
+          style="background:rgba(255,255,255,0.05);">
+          Cancelar
+        </button>
+        <button
+          (click)="onCreateMeeting()"
+          [disabled]="!newMeeting.title || !newMeeting.startTime || !newMeeting.endTime || creatingMeeting"
+          class="flex-1 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style="background:#0055ff; color:white;">
+          @if (creatingMeeting) { Programando... } @else { Programar }
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -5,6 +5,15 @@ import { User } from './entities/user.entity';
 import { UserSettings } from './entities/user-settings.entity';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
+export interface ProfileDto {
+  id: string;
+  name: string;
+  fullName: string | null;
+  email: string;
+  role: string;
+  avatarUrl: string | null;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -36,6 +45,21 @@ export class UsersService {
 
     Object.assign(settings, dto);
     return this.settingsRepo.save(settings);
+  }
+
+  async getProfile(userId: string): Promise<ProfileDto> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return { id: user.id, name: user.name, fullName: user.fullName, email: user.email, role: user.role, avatarUrl: user.avatarUrl };
+  }
+
+  async updateProfile(userId: string, dto: { fullName?: string; name?: string }): Promise<ProfileDto> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (dto.fullName !== undefined) user.fullName = dto.fullName;
+    if (dto.name !== undefined) user.name = dto.name;
+    await this.userRepo.save(user);
+    return { id: user.id, name: user.name, fullName: user.fullName, email: user.email, role: user.role, avatarUrl: user.avatarUrl };
   }
 
   async deleteAccount(userId: string): Promise<{ message: string }> {

@@ -97,21 +97,9 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  onCreateMeeting(): void {
-    if (!this.newMeeting.title || !this.newMeeting.startTime || !this.newMeeting.endTime) return;
-    this.creatingMeeting = true;
-    const session = this.authSvc.getSession();
-    this.meetingsApi.createMeeting({
-      ...this.newMeeting,
-      userId: session?.userId ?? '',
-    }).subscribe({
-      next: () => {
-        this.creatingMeeting = false;
-        this.showNewMeetingModal = false;
-        this.loadStats();
-      },
-      error: () => { this.creatingMeeting = false; },
-    });
+  onSchedule(): void {
+    this.showNewMeetingModal = false;
+    this.router.navigate(['/calendar'], { queryParams: { create: '1' } });
   }
 
   ngOnInit(): void {

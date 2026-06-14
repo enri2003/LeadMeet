@@ -6,7 +6,7 @@ import { MeetingParticipant } from './entities/meeting-participant.entity';
 import { MeetingFilterStatus } from './dto/query-meetings.dto';
 import { CreateMeetingDto } from './dto/create-meeting.dto';
 
-export type MeetingWithDuration = Meeting & { durationMinutes: number };
+export type MeetingWithDuration = Meeting & { durationMinutes: number; userDurationMinutes: number };
 
 @Injectable()
 export class MeetingsService {
@@ -65,6 +65,14 @@ export class MeetingsService {
     return this.meetingRepo.findOne({ where: { meetingCode } });
   }
 
+  async findByCodeOrId(codeOrId: string): Promise<Meeting | null> {
+    if (codeOrId.length > 10) {
+      const byId = await this.meetingRepo.findOne({ where: { id: codeOrId } });
+      if (byId) return byId;
+    }
+    return this.meetingRepo.findOne({ where: { meetingCode: codeOrId } });
+  }
+
   // ─── Module 6 methods (Task 3.4, 3.5) ─────────────────────────────────────
 
   async getMeetings(
@@ -76,7 +84,10 @@ export class MeetingsService {
     const qb = this.meetingRepo
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.participants', 'p')
-      .where('m.createdById = :userId', { userId });
+      .where(
+        '(m.createdById = :userId OR EXISTS (SELECT 1 FROM meeting_participants mp WHERE mp.meeting_id = m.id AND mp.user_id = :userId))',
+        { userId },
+      );
 
     switch (opts.status) {
       case 'upcoming':
@@ -112,11 +123,20 @@ export class MeetingsService {
 
     const meetings = await qb.getMany();
 
-    return meetings.map((m) =>
-      Object.assign(m, {
+    return meetings.map((m) => {
+      const userPart = m.participants?.find((p) => p.userId === userId);
+      let userDurationMinutes = 0;
+      if (userPart?.joinedAt && userPart?.leftAt) {
+        userDurationMinutes = Math.max(
+          0,
+          Math.round((userPart.leftAt.getTime() - userPart.joinedAt.getTime()) / 60_000),
+        );
+      }
+      return Object.assign(m, {
         durationMinutes: Math.round((m.endTime.getTime() - m.startTime.getTime()) / 60_000),
-      }),
-    );
+        userDurationMinutes,
+      });
+    });
   }
 
   async archiveMeeting(id: string, requesterId: string): Promise<Meeting> {

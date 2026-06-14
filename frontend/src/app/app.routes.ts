@@ -26,8 +26,13 @@ export const routes: Routes = [
   },
 
   // ── Protected (auth required) ────────────────────────────────────────────────
-  { path: '',        canActivate: [authGuard], component: DashboardComponent },
-  { path: 'profile', canActivate: [authGuard], component: DashboardComponent },
+  { path: '', canActivate: [authGuard], component: DashboardComponent },
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/profile/profile.component').then(m => m.ProfileComponent),
+  },
   {
     path: 'meetings',
     canActivate: [authGuard],
