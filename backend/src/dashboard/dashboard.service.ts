@@ -17,7 +17,7 @@ export class DashboardService {
 
     const completed = await this.meetingRepo.find({
       where: { createdById: userId, status: 'completed' },
-      relations: ['participants', 'participants.user'],
+      relations: { participants: { user: true } },
     });
 
     const totalMinutes = completed.reduce((acc, m) => {
