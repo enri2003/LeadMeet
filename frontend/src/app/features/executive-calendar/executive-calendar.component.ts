@@ -8,6 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { timeout } from 'rxjs';
 import { CalendarApiService } from '../../core/services/calendar-api.service';
 import { MeetingsApiService } from '../../core/services/meetings-api.service';
 import { AuthService } from '../../core/services/auth/auth.service';
@@ -56,6 +57,7 @@ export class ExecutiveCalendarComponent implements OnInit {
   // Create meeting modal
   showCreateModal = false;
   creatingMeeting = false;
+  createError: string | null = null;
   newMeeting = {
     title: '',
     type: 'general' as MeetingType,
@@ -188,6 +190,7 @@ export class ExecutiveCalendarComponent implements OnInit {
       description: '',
       isConfidential: false,
     };
+    this.createError = null;
     this.showCreateModal = true;
     this.cdr.markForCheck();
   }
@@ -202,7 +205,14 @@ export class ExecutiveCalendarComponent implements OnInit {
   onCreateMeeting(): void {
     if (!this.newMeeting.title || !this.newMeeting.startTime || !this.newMeeting.endTime) return;
     this.creatingMeeting = true;
+    this.createError = null;
     const session = this.authSvc.getSession();
+    if (!session?.userId) {
+      this.creatingMeeting = false;
+      this.createError = 'Tu sesión expiró. Inicia sesión de nuevo.';
+      this.cdr.markForCheck();
+      return;
+    }
     this.meetingsApi.createMeeting({
       title: this.newMeeting.title,
       type: this.newMeeting.type,
@@ -210,16 +220,21 @@ export class ExecutiveCalendarComponent implements OnInit {
       isConfidential: this.newMeeting.isConfidential,
       startTime: this.buildDateTime(this.selectedDate, this.newMeeting.startTime),
       endTime: this.buildDateTime(this.selectedDate, this.newMeeting.endTime),
-      userId: session?.userId ?? '',
-    }).subscribe({
+      userId: session.userId,
+    }).pipe(timeout(10000)).subscribe({
       next: () => {
         this.creatingMeeting = false;
         this.showCreateModal = false;
-        this.loadMonth(); // Refresh calendar
+        this.loadMonth();
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err) => {
         this.creatingMeeting = false;
+        if (err?.name === 'TimeoutError') {
+          this.createError = 'El servidor no respondió. Verifica que el backend esté corriendo.';
+        } else {
+          this.createError = err?.error?.message ?? 'Error al programar la reunión. Intenta de nuevo.';
+        }
         this.cdr.markForCheck();
       },
     });

@@ -233,7 +233,16 @@
         </div>
       </div>
 
-      <div class="flex gap-2 mt-6">
+      @if (createError) {
+        <div class="mt-4 flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2.5">
+          <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          <p class="text-sm text-red-300">{{ createError }}</p>
+        </div>
+      }
+
+      <div class="flex gap-2 mt-4">
         <button
           (click)="showCreateModal = false"
           class="flex-1 py-3 rounded-xl text-sm font-semibold text-white/50 hover:text-white transition-colors"
