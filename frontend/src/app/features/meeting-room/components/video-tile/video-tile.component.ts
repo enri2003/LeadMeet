@@ -111,8 +111,10 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['stream'] && this.videoEl?.nativeElement) {
-      this.videoEl.nativeElement.srcObject = this.stream ?? null;
-      if (this.stream) this.videoEl.nativeElement.play().catch(() => null);
+      const el = this.videoEl.nativeElement;
+      el.muted = this.isLocal;
+      el.srcObject = this.stream ?? null;
+      if (this.stream) el.play().catch(() => null);
     }
     if (changes['isCameraOff'] && !this.isCameraOff && this.videoEl?.nativeElement?.srcObject) {
       this.videoEl.nativeElement.play().catch(() => null);
@@ -120,9 +122,13 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    if (this.stream && this.videoEl?.nativeElement) {
-      this.videoEl.nativeElement.srcObject = this.stream;
-      this.videoEl.nativeElement.play().catch(() => null);
+    if (this.videoEl?.nativeElement) {
+      const el = this.videoEl.nativeElement;
+      el.muted = this.isLocal;
+      if (this.stream) {
+        el.srcObject = this.stream;
+        el.play().catch(() => null);
+      }
     }
   }
 }

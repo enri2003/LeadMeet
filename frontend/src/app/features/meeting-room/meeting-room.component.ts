@@ -57,7 +57,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     return s?.fullName || s?.name || 'Usuario';
   }
 
-  private get sessionUserId(): string {
+  get sessionUserId(): string {
     return this.authSvc.getSession()?.userId ?? 'local-user';
   }
 
@@ -619,7 +619,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       this.localParticipant.isMuted = this.isMuted;
     }
     this.signaling.toggleMute(this.roomId, this.isMuted);
-    void this.renegotiateWithAllPeers();
     this.cdr.detectChanges();
   }
 

@@ -431,15 +431,28 @@
               <div class="px-4 py-2.5 shrink-0 border-b border-white/5">
                 <span class="text-white/60 text-xs font-semibold uppercase tracking-widest">Chat</span>
               </div>
-              <div class="flex-1 overflow-y-auto px-3 py-2 min-h-0 space-y-3">
+              <div class="flex-1 overflow-y-auto px-3 py-2 min-h-0 space-y-2.5">
                 @for (msg of chatMessages; track $index) {
-                  <div>
-                    <div class="flex items-baseline gap-2">
-                      <span class="text-white/80 text-xs font-semibold">{{ msg.senderName }}</span>
-                      <span class="text-white/30 text-[10px]">{{ msg.timestamp | date:'HH:mm' }}</span>
+                  @if (msg.senderId === sessionUserId) {
+                    <!-- Mis mensajes: derecha, azul -->
+                    <div class="flex flex-col items-end gap-0.5">
+                      <span class="text-white/30 text-[10px] pr-1">{{ msg.timestamp | date:'HH:mm' }}</span>
+                      <div class="max-w-[80%] rounded-2xl rounded-tr-sm px-3 py-2"
+                           style="background:#0055ff;">
+                        <p class="text-white text-xs leading-relaxed break-words">{{ msg.content }}</p>
+                      </div>
                     </div>
-                    <p class="text-white/55 text-xs mt-0.5 leading-relaxed break-words">{{ msg.content }}</p>
-                  </div>
+                  } @else {
+                    <!-- Mensajes de otros: izquierda, gris -->
+                    <div class="flex flex-col items-start gap-0.5">
+                      <span class="text-white/40 text-[10px] pl-1 font-semibold">{{ msg.senderName }}</span>
+                      <div class="max-w-[80%] rounded-2xl rounded-tl-sm px-3 py-2"
+                           style="background:rgba(255,255,255,0.08);">
+                        <p class="text-white/85 text-xs leading-relaxed break-words">{{ msg.content }}</p>
+                      </div>
+                      <span class="text-white/20 text-[10px] pl-1">{{ msg.timestamp | date:'HH:mm' }}</span>
+                    </div>
+                  }
                 }
                 @if (chatMessages.length === 0) {
                   <p class="text-white/20 text-xs text-center py-6">Sin mensajes aún</p>
