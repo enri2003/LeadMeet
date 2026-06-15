@@ -10,7 +10,7 @@ import { MeetingParticipant } from '../../meetings/entities/meeting-participant.
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
   @Column({ length: 100 })

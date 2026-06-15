@@ -16,7 +16,7 @@ export type MeetingType = 'strategy' | 'negotiation' | 'interview' | 'general' |
 
 @Entity('meetings')
 export class Meeting {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id!: string;
 
   @Column({ length: 200 })
@@ -69,7 +69,7 @@ export class Meeting {
   @JoinColumn({ name: 'created_by' })
   createdBy!: User;
 
-  @Column({ name: 'created_by' })
+  @Column({ name: 'created_by', type: 'bigint' })
   createdById!: string;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

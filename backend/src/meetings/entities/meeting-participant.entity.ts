@@ -6,21 +6,21 @@ export type ParticipantRole = 'Anfitrión' | 'Participante' | 'Guest';
 
 @Entity('meeting_participants')
 export class MeetingParticipant {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
   @ManyToOne(() => Meeting, (m) => m.participants)
   @JoinColumn({ name: 'meeting_id' })
   meeting: Meeting;
 
-  @Column({ name: 'meeting_id' })
+  @Column({ name: 'meeting_id', type: 'bigint' })
   meetingId: string;
 
   @ManyToOne(() => User, (u) => u.participations)
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'bigint' })
   userId: string;
 
   @Column({ name: 'participant_role', length: 50, default: 'Participante' })

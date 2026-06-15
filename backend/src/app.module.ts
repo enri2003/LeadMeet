@@ -26,7 +26,7 @@ import { DailyNote } from './calendar/entities/daily-note.entity';
         username: config.get('DB_USER'),
         password: config.get('DB_PASSWORD'),
         entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog, DailyNote],
-        synchronize: false,
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),

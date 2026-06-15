@@ -65,10 +65,11 @@
       <div class="flex items-center gap-3 pl-2">
         <span class="text-[10px] font-medium px-2 py-0.5 rounded-full"
               [ngClass]="{
-                'bg-blue-500/15 text-blue-400':     m.type === 'strategy',
-                'bg-yellow-500/15 text-yellow-400': m.type === 'negotiation',
-                'bg-purple-500/15 text-purple-400': m.type === 'interview',
-                'bg-white/10 text-white/40':        m.type === 'general'
+                'bg-blue-500/15 text-blue-400':       m.type === 'strategy',
+                'bg-yellow-500/15 text-yellow-400':   m.type === 'negotiation',
+                'bg-purple-500/15 text-purple-400':   m.type === 'interview',
+                'bg-white/10 text-white/40':           m.type === 'general',
+                'bg-emerald-500/15 text-emerald-400': m.type === 'clase'
               }">
           {{ typeLabel(m.type) }}
         </span>
@@ -86,6 +87,12 @@
           </svg>
         </span>
       </div>
+
+      <!-- Description -->
+      <p *ngIf="m.description"
+         class="pl-2 mt-2 text-[11px] text-white/35 leading-relaxed line-clamp-2">
+        {{ m.description }}
+      </p>
 
       <!-- Enter button (visible on hover, only for scheduled) -->
       <button *ngIf="m.status === 'scheduled'"

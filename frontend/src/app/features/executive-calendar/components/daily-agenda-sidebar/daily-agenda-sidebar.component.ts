@@ -49,7 +49,7 @@ export class DailyAgendaSidebarComponent {
   typeLabel(type: string): string {
     const map: Record<string, string> = {
       strategy: 'Estrategia', negotiation: 'Negociación',
-      interview: 'Entrevista', general: 'General',
+      interview: 'Entrevista', general: 'General', clase: 'Clase',
     };
     return map[type] ?? type;
   }
@@ -57,7 +57,7 @@ export class DailyAgendaSidebarComponent {
   typeBarColor(type: string): string {
     const map: Record<string, string> = {
       strategy: 'bg-blue-500', negotiation: 'bg-yellow-500',
-      interview: 'bg-purple-500', general: 'bg-white/20',
+      interview: 'bg-purple-500', general: 'bg-white/20', clase: 'bg-emerald-500',
     };
     return map[type] ?? 'bg-white/20';
   }

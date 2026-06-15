@@ -11,10 +11,10 @@ import { User } from '../../users/entities/user.entity';
 
 @Entity('daily_notes')
 export class DailyNote {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'bigint' })
   userId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })

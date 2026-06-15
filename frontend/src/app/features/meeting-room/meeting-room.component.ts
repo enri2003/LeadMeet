@@ -536,18 +536,14 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         if (!participant.stream) {
           participant.stream = stream;
         } else if (stream.id !== participant.stream.id) {
-          // Only treat as screen share if the track is video-only (screen shares have no audio)
-          // and the participant has signalled they are sharing screen
           if (track.kind === 'video' && participant.isSharingScreen) {
             participant.screenStream = stream;
           } else if (!participant.isSharingScreen) {
-            // Renegotiation produced a new stream — update main stream
             participant.stream = stream;
           }
         }
 
         this.refresh();
-        setTimeout(() => this.unlockRemoteAudio(), 300);
       });
     };
 

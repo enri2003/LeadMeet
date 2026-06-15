@@ -3,6 +3,7 @@ export interface CalendarEventItem {
   title: string;
   type: 'strategy' | 'negotiation' | 'interview' | 'general' | 'clase';
   status: 'scheduled' | 'completed' | 'cancelled' | 'archived';
+  description?: string;
   startTime: string;
   endTime: string;
   participantCount: number;

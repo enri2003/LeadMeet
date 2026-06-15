@@ -204,8 +204,22 @@ export class ExecutiveCalendarComponent implements OnInit {
 
   onCreateMeeting(): void {
     if (!this.newMeeting.title || !this.newMeeting.startTime || !this.newMeeting.endTime) return;
-    this.creatingMeeting = true;
     this.createError = null;
+
+    const startISO = this.buildDateTime(this.selectedDate, this.newMeeting.startTime);
+    // If end hour <= start hour it crosses midnight — schedule end on the next day
+    const [sh] = this.newMeeting.startTime.split(':').map(Number);
+    const [eh] = this.newMeeting.endTime.split(':').map(Number);
+    const endDate = eh <= sh ? new Date(this.selectedDate.getTime() + 86_400_000) : this.selectedDate;
+    const endISO = this.buildDateTime(endDate, this.newMeeting.endTime);
+
+    if (new Date(endISO) <= new Date(startISO)) {
+      this.createError = 'La hora de fin debe ser posterior a la hora de inicio.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.creatingMeeting = true;
     const session = this.authSvc.getSession();
     if (!session?.userId) {
       this.creatingMeeting = false;
@@ -218,8 +232,8 @@ export class ExecutiveCalendarComponent implements OnInit {
       type: this.newMeeting.type,
       description: this.newMeeting.description || undefined,
       isConfidential: this.newMeeting.isConfidential,
-      startTime: this.buildDateTime(this.selectedDate, this.newMeeting.startTime),
-      endTime: this.buildDateTime(this.selectedDate, this.newMeeting.endTime),
+      startTime: startISO,
+      endTime: endISO,
       userId: session.userId,
     }).pipe(timeout(10000)).subscribe({
       next: () => {

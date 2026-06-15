@@ -366,7 +366,21 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       : undefined;
 
     const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
-    await this.meetingsService.endMeeting(meetingId, durationMinutes).catch(() => null);
+
+    const now = new Date();
+
+    // Record leave for every participant still in the room
+    await Promise.all(
+      Array.from(room.values()).map((p) =>
+        this.meetingsService.recordLeave(meetingId, p.userId, now).catch(() => null),
+      ),
+    );
+
+    // Only mark as completed if the meeting has actually started (startTime <= now)
+    const meeting = await this.meetingsService.findById(meetingId).catch(() => null);
+    if (!meeting || meeting.startTime <= now) {
+      await this.meetingsService.endMeeting(meetingId, durationMinutes).catch(() => null);
+    }
 
     this.server.to(data.roomId).emit('meeting-ended', { endedBy: participant.name });
 
@@ -614,7 +628,21 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(`Room ${roomId} vacía, sala cerrada (sin cambiar estado en BD)`);
     } else if (intentionalLeave && isCreatorLeaving) {
       const meetingId2 = this.roomToMeetingId.get(roomId) ?? roomId;
-      await this.meetingsService.endMeeting(meetingId2).catch(() => null);
+
+      const leaveNow = new Date();
+
+      // Record leave for remaining participants (creator's leave already recorded above)
+      await Promise.all(
+        Array.from(room.values()).map((p) =>
+          this.meetingsService.recordLeave(meetingId2, p.userId, leaveNow).catch(() => null),
+        ),
+      );
+
+      // Only mark as completed if the meeting has already started
+      const meeting2 = await this.meetingsService.findById(meetingId2).catch(() => null);
+      if (!meeting2 || meeting2.startTime <= leaveNow) {
+        await this.meetingsService.endMeeting(meetingId2).catch(() => null);
+      }
       this.server.to(roomId).emit('meeting-ended', { endedBy: participant.name });
       // Reject any participants waiting
       const waitingRoom = this.waitingRooms.get(roomId);

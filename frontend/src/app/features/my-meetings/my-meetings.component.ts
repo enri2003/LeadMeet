@@ -43,6 +43,20 @@ export class MyMeetingsComponent implements OnInit {
   endDate   = '';
   typeFilter = '';
 
+  // Edit modal state
+  editingMeeting: MeetingDto | null = null;
+  editForm = { title: '', type: '', startTime: '', endTime: '', description: '' };
+  editSaving = false;
+  editError: string | null = null;
+
+  readonly meetingTypeOptions = [
+    { value: 'general',     label: 'General' },
+    { value: 'strategy',    label: 'Estrategia' },
+    { value: 'negotiation', label: 'Negociación' },
+    { value: 'interview',   label: 'Entrevista' },
+    { value: 'clase',       label: 'Clase' },
+  ];
+
   readonly tabs: { key: Tab; label: string; icon: string }[] = [
     {
       key: 'upcoming',
@@ -151,6 +165,69 @@ export class MyMeetingsComponent implements OnInit {
   onEnterMeeting(meeting: MeetingDto): void {
     const code = meeting.meetingCode ?? meeting.id;
     this.router.navigate(['/meeting', code]);
+  }
+
+  openEdit(meeting: MeetingDto): void {
+    this.editingMeeting = meeting;
+    this.editError = null;
+    const start = new Date(meeting.startTime);
+    const end   = new Date(meeting.endTime);
+    this.editForm = {
+      title:       meeting.title,
+      type:        meeting.type,
+      description: meeting.description ?? '',
+      startTime:   `${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`,
+      endTime:     `${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`,
+    };
+    this.cdr.markForCheck();
+  }
+
+  closeEdit(): void {
+    this.editingMeeting = null;
+    this.editError = null;
+    this.cdr.markForCheck();
+  }
+
+  onSaveEdit(): void {
+    if (!this.editingMeeting || !this.editForm.title || !this.editForm.startTime || !this.editForm.endTime) return;
+    this.editError = null;
+
+    const base = new Date(this.editingMeeting.startTime);
+    base.setSeconds(0, 0);
+
+    const [sh, sm] = this.editForm.startTime.split(':').map(Number);
+    const [eh, em] = this.editForm.endTime.split(':').map(Number);
+
+    const startDt = new Date(base); startDt.setHours(sh, sm, 0, 0);
+    const endBase = eh <= sh ? new Date(base.getTime() + 86_400_000) : new Date(base);
+    const endDt   = new Date(endBase); endDt.setHours(eh, em, 0, 0);
+
+    if (endDt <= startDt) {
+      this.editError = 'La hora de fin debe ser posterior a la hora de inicio.';
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.editSaving = true;
+    this.api.updateMeeting(this.editingMeeting.id, {
+      title:       this.editForm.title,
+      type:        this.editForm.type,
+      description: this.editForm.description || undefined,
+      startTime:   startDt.toISOString(),
+      endTime:     endDt.toISOString(),
+    }).subscribe({
+      next: () => {
+        this.editSaving = false;
+        this.editingMeeting = null;
+        this.loadMeetings();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.editSaving = false;
+        this.editError = err?.error?.message ?? 'Error al guardar. Intenta de nuevo.';
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // ─── Data loading ────────────────────────────────────────────────────────────

@@ -13,14 +13,14 @@ export type PrivacyLevel = 'organization' | 'anyone' | 'verified';
 
 @Entity('user_settings')
 export class UserSettings {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'bigint' })
   userId: string;
 
   // Audio & Video

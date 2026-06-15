@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Meeting } from './entities/meeting.entity';
@@ -22,28 +22,47 @@ export class MeetingsService {
   // ─── Create meeting ────────────────────────────────────────────────────────
 
   async createMeeting(dto: CreateMeetingDto): Promise<Meeting> {
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(dto.endTime);
+    if (endTime <= startTime) {
+      throw new BadRequestException('La hora de fin debe ser posterior a la hora de inicio.');
+    }
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const meeting = this.meetingRepo.create({
       title: dto.title,
       description: dto.description ?? null,
       type: dto.type,
-      startTime: new Date(dto.startTime),
-      endTime: new Date(dto.endTime),
+      startTime,
+      endTime,
       isConfidential: dto.isConfidential ?? false,
       meetingCode: code,
       createdById: dto.userId,
       status: 'scheduled',
     });
-    return this.meetingRepo.save(meeting);
+    try {
+      return await this.meetingRepo.save(meeting);
+    } catch (err: any) {
+      if (err?.code === '23514') {
+        throw new BadRequestException('La hora de fin debe ser posterior a la hora de inicio.');
+      }
+      if (err?.code === '22P02' || err?.code === '23502') {
+        throw new BadRequestException('Datos inválidos en la reunión.');
+      }
+      throw err;
+    }
   }
 
   // ─── Module 2 methods ──────────────────────────────────────────────────────
 
   async recordJoin(meetingId: string, userId: string, joinedAt: Date): Promise<void> {
-    await this.participantRepo.upsert(
-      { meetingId, userId, joinedAt, leftAt: null },
-      { conflictPaths: ['meetingId', 'userId'], skipUpdateIfNoValuesChanged: false },
-    );
+    const existing = await this.participantRepo.findOne({ where: { meetingId, userId } });
+    if (existing) {
+      await this.participantRepo.update({ meetingId, userId }, { joinedAt, leftAt: null });
+    } else {
+      await this.participantRepo.save(
+        this.participantRepo.create({ meetingId, userId, joinedAt, leftAt: null, participantRole: 'Participante' }),
+      );
+    }
     this.logger.log(`Recorded join: user=${userId} meeting=${meetingId}`);
   }
 
@@ -59,6 +78,10 @@ export class MeetingsService {
     }
     await this.meetingRepo.update({ id: meetingId }, update);
     this.logger.log(`Meeting ${meetingId} marked as completed (duration: ${actualDurationMinutes ?? 'N/A'} min)`);
+  }
+
+  async findById(id: string): Promise<Meeting | null> {
+    return this.meetingRepo.findOne({ where: { id } });
   }
 
   async findByCode(meetingCode: string): Promise<Meeting | null> {
@@ -141,6 +164,30 @@ export class MeetingsService {
     });
   }
 
+  async updateMeeting(
+    id: string,
+    requesterId: string,
+    dto: { title?: string; description?: string; type?: string; startTime?: string; endTime?: string },
+  ): Promise<Meeting> {
+    const meeting = await this.meetingRepo.findOne({ where: { id } });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    if (meeting.createdById !== requesterId)
+      throw new ForbiddenException('Solo el creador puede editar esta reunión');
+    if (meeting.status !== 'scheduled')
+      throw new BadRequestException('Solo se pueden editar reuniones programadas');
+
+    if (dto.title) meeting.title = dto.title;
+    if (dto.description !== undefined) meeting.description = dto.description ?? null;
+    if (dto.type) meeting.type = dto.type as any;
+    if (dto.startTime) meeting.startTime = new Date(dto.startTime);
+    if (dto.endTime) meeting.endTime = new Date(dto.endTime);
+
+    if (meeting.endTime <= meeting.startTime)
+      throw new BadRequestException('La hora de fin debe ser posterior a la hora de inicio.');
+
+    return this.meetingRepo.save(meeting);
+  }
+
   async archiveMeeting(id: string, requesterId: string): Promise<Meeting> {
     const meeting = await this.meetingRepo.findOne({ where: { id } });
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
@@ -167,20 +214,4 @@ export class MeetingsService {
     await this.meetingRepo.delete(id);
   }
 
-  async updateMeeting(
-    id: string,
-    requesterId: string,
-    dto: { title?: string; description?: string; startTime?: string; endTime?: string; type?: string },
-  ): Promise<Meeting> {
-    const meeting = await this.meetingRepo.findOne({ where: { id } });
-    if (!meeting) throw new NotFoundException('Reunión no encontrada');
-    if (meeting.createdById !== requesterId)
-      throw new ForbiddenException('Solo el creador puede editar esta reunión');
-    if (dto.title) meeting.title = dto.title;
-    if (dto.description !== undefined) meeting.description = dto.description ?? null;
-    if (dto.startTime) meeting.startTime = new Date(dto.startTime);
-    if (dto.endTime) meeting.endTime = new Date(dto.endTime);
-    if (dto.type) meeting.type = dto.type as any;
-    return this.meetingRepo.save(meeting);
-  }
 }

@@ -16,15 +16,13 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="relative w-full h-full bg-black rounded-2xl border border-white/5 overflow-hidden select-none"
-         (click)="unlockAudio()">
+    <div class="relative w-full h-full bg-black rounded-2xl border border-white/5 overflow-hidden select-none">
 
       <!-- Video element — local view is mirrored so it feels natural -->
       <video
         #videoEl
         autoplay
         playsinline
-        [muted]="isLocal"
         [class.hidden]="isCameraOff"
         [style.transform]="isLocal ? 'scaleX(-1)' : ''"
         class="w-full h-full object-cover"
@@ -39,16 +37,6 @@ import { CommonModule } from '@angular/common';
           <span class="text-white text-3xl font-bold" style="text-shadow: 0 2px 8px rgba(0,0,0,0.5)">{{ initials }}</span>
         </div>
         <p class="text-white/60 text-xs font-medium mt-3 tracking-wide">{{ name }}</p>
-      </div>
-
-      <!-- Audio blocked overlay: click to unlock -->
-      <div *ngIf="audioBlocked && !isLocal"
-           class="absolute inset-0 flex flex-col items-center justify-center gap-2 cursor-pointer z-10"
-           style="background:rgba(0,0,0,0.55);">
-        <svg class="w-8 h-8 text-white/80" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M16.5 12A4.5 4.5 0 0012 7.5v2.09l4.24 4.24c.17-.59.26-1.2.26-1.83zm2.84 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.93 8.93 0 0021.5 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0019.73 18L21 19.27 19.73 21 3 4.27zM12 3L9.91 5.09 12 7.18V3z"/>
-        </svg>
-        <span class="text-white text-xs font-semibold text-center px-4">Haz clic para<br>activar el audio</span>
       </div>
 
       <!-- Active speaker ring (green border on tile) -->
@@ -96,17 +84,14 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
 
-  audioBlocked = false;
-
   unlockAudio(): void {
     if (!this.isLocal && this.videoEl?.nativeElement) {
       const el = this.videoEl.nativeElement;
       el.muted = false;
-      el.play().then(() => {
-        this.audioBlocked = false;
-      }).catch(() => null);
+      el.play().catch(() => null);
     }
   }
+
 
   private static readonly PALETTE = [
     '#1e3a5f','#5f1e1e','#3b1e5f','#1e5f3b',
@@ -138,15 +123,7 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
       el.muted = this.isLocal;
       el.srcObject = this.stream ?? null;
       if (this.stream) {
-        el.play().then(() => {
-          // Check if browser auto-muted the element despite our setting
-          if (!this.isLocal && el.muted) {
-            el.muted = false;
-            this.audioBlocked = true;
-          }
-        }).catch(() => {
-          if (!this.isLocal) this.audioBlocked = true;
-        });
+        el.play().catch(() => null);
       }
     }
     if (changes['isCameraOff'] && !this.isCameraOff && this.videoEl?.nativeElement?.srcObject) {

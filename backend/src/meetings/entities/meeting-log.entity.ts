@@ -14,21 +14,21 @@ export type SourceType   = 'monitor' | 'window' | 'browser';
 
 @Entity('meeting_logs')
 export class MeetingLog {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: string;
 
   @ManyToOne(() => Meeting, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'meeting_id' })
   meeting: Meeting | null;
 
-  @Column({ name: 'meeting_id', type: 'uuid', nullable: true })
+  @Column({ name: 'meeting_id', type: 'bigint', nullable: true })
   meetingId: string | null;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'user_id' })
+  @Column({ name: 'user_id', type: 'bigint' })
   userId: string;
 
   @Column({ name: 'room_id', length: 100 })

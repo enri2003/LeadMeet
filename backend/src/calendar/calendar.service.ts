@@ -9,6 +9,7 @@ export interface CalendarEventItem {
   title: string;
   type: string;
   status: string;
+  description?: string;
   startTime: string;
   endTime: string;
   participantCount: number;
@@ -38,7 +39,10 @@ export class CalendarService {
     const meetings = await this.meetingRepo
       .createQueryBuilder('m')
       .leftJoinAndSelect('m.participants', 'p')
-      .where('m.createdById = :userId', { userId })
+      .where(
+        '(m.createdById = :userId OR EXISTS (SELECT 1 FROM meeting_participants mp WHERE mp.meeting_id = m.id AND mp.user_id = :userId))',
+        { userId },
+      )
       .andWhere('m.startTime >= :start', { start: startDate })
       .andWhere('m.startTime < :end',   { end: endDate })
       .andWhere("m.status IN ('scheduled', 'completed')")
@@ -54,6 +58,7 @@ export class CalendarService {
         title:            m.title,
         type:             m.type,
         status:           m.status,
+        description:      m.description ?? undefined,
         startTime:        m.startTime.toISOString(),
         endTime:          m.endTime.toISOString(),
         participantCount: m.participants.length,
