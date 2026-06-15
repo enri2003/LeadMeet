@@ -9,7 +9,17 @@ async function bootstrap() {
 
   const dataSource = app.get(DataSource);
   await dataSource.query(`UPDATE users SET role = 'Miembro' WHERE role = 'Member'`).catch(() => null);
-  await dataSource.query(`ALTER TYPE meetings_type_enum ADD VALUE IF NOT EXISTS 'clase'`).catch(() => null);
+
+  // ALTER TYPE ADD VALUE cannot run inside a transaction — use a raw connection
+  const runner = dataSource.createQueryRunner();
+  await runner.connect();
+  try {
+    await runner.query(`ALTER TYPE meetings_type_enum ADD VALUE IF NOT EXISTS 'clase'`);
+  } catch {
+    // already exists or not supported — safe to ignore
+  } finally {
+    await runner.release();
+  }
 
   app.enableCors({ origin: true, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
