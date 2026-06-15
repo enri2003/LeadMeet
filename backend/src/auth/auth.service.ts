@@ -96,20 +96,16 @@ export class AuthService {
       fullName: dto.fullName,
       email: dto.email,
       passwordHash,
-      isVerified: false,
-      otpCode: code,
-      otpExpiresAt: expiresAt,
+      isVerified: true,
+      otpCode: null,
+      otpExpiresAt: null,
       role: 'Miembro',
     });
 
     const saved = await this.userRepo.save(user);
 
-    this.mailSvc.sendOtp(dto.email, dto.fullName, code).catch((err: Error) => {
-      this.logger.warn(`SMTP error al registrar ${dto.email}: ${err.message}`);
-    });
-
     return {
-      message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
+      message: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.',
       userId: saved.id,
     };
   }
