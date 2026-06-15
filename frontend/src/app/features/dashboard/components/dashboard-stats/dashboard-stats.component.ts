@@ -23,10 +23,9 @@ export class DashboardStatsComponent {
   }
 
   get totalHoursLabel(): string {
-    const hours = Number(this.stats?.totalHours ?? 0);
-    const totalMinutes = Math.round(hours * 60);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
+    const total = this.stats?.totalMinutes ?? 0;
+    const h = Math.floor(total / 60);
+    const m = total % 60;
     if (h === 0 && m === 0) return '—';
     if (h === 0) return `${m}min`;
     if (m === 0) return `${h}h`;
