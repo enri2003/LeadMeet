@@ -106,6 +106,15 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     } catch { /* fallback */ }
 
+    // Block entry to completed/cancelled meetings
+    if (resolvedMeeting && (resolvedMeeting.status === 'completed' || resolvedMeeting.status === 'cancelled' || resolvedMeeting.status === 'archived')) {
+      client.emit('join-rejected', {
+        reason: 'Esta reunión ya ha finalizado y fue cerrada.',
+      });
+      if (freshRoom) this.cleanupRoom(roomId);
+      return { success: false, isHost: false };
+    }
+
     // Block entry before scheduled start time (except for creator)
     if (resolvedMeeting && !isCreator && resolvedMeeting.status === 'scheduled') {
       const now = new Date();
@@ -356,6 +365,9 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ? Math.round(data.durationSeconds / 60)
       : undefined;
 
+    const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
+    await this.meetingsService.endMeeting(meetingId, durationMinutes).catch(() => null);
+
     this.server.to(data.roomId).emit('meeting-ended', { endedBy: participant.name });
 
     const waitingRoom = this.waitingRooms.get(data.roomId);
@@ -601,6 +613,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.cleanupRoom(roomId);
       this.logger.log(`Room ${roomId} vacía, sala cerrada (sin cambiar estado en BD)`);
     } else if (intentionalLeave && isCreatorLeaving) {
+      const meetingId2 = this.roomToMeetingId.get(roomId) ?? roomId;
+      await this.meetingsService.endMeeting(meetingId2).catch(() => null);
       this.server.to(roomId).emit('meeting-ended', { endedBy: participant.name });
       // Reject any participants waiting
       const waitingRoom = this.waitingRooms.get(roomId);
