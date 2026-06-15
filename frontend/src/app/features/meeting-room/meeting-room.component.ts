@@ -48,7 +48,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
   private readonly media = inject(MediaStreamService);
   private readonly authSvc = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly zone = inject(NgZone);
 
@@ -86,6 +86,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
   chatInput = '';
 
   joinNotification: string | null = null;
+  rejectedReason: string | null = null;
+  rejectedScheduledAt: string | null = null;
 
   showEmojiPicker = false;
   floatingReactions: { id: number; emoji: string; name: string; x: number }[] = [];
@@ -443,9 +445,10 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         void this.rejoinAfterReconnect();
       }),
 
-      this.signaling.onJoinRejected().subscribe(({ reason }) => {
-        alert(reason ?? 'No puedes unirte a esta sala.');
-        void this.router.navigate(['/']);
+      this.signaling.onJoinRejected().subscribe(({ reason, scheduledAt }) => {
+        this.rejectedReason = reason ?? 'No puedes unirte a esta sala.';
+        this.rejectedScheduledAt = scheduledAt ?? null;
+        this.cdr.markForCheck();
       }),
     ];
 

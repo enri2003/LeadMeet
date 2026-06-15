@@ -1,7 +1,7 @@
 export interface CalendarEventItem {
   id: string;
   title: string;
-  type: 'strategy' | 'negotiation' | 'interview' | 'general';
+  type: 'strategy' | 'negotiation' | 'interview' | 'general' | 'clase';
   status: 'scheduled' | 'completed' | 'cancelled' | 'archived';
   startTime: string;
   endTime: string;
@@ -31,10 +31,11 @@ export interface CalendarDay {
 }
 
 export const EVENT_TYPE_DOT: Record<string, string> = {
-  strategy:    'bg-blue-500',
+  strategy:    'bg-blue-600',
   negotiation: 'bg-yellow-500',
-  interview:   'bg-purple-500',
+  interview:   'bg-purple-600',
   general:     'bg-white/30',
+  clase:       'bg-emerald-600',
 };
 
 export const MONTH_NAMES = [
