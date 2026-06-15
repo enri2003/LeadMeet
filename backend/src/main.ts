@@ -9,7 +9,6 @@ async function bootstrap() {
 
   const dataSource = app.get(DataSource);
   await dataSource.query(`UPDATE users SET role = 'Miembro' WHERE role = 'Member'`).catch(() => null);
-  await dataSource.query(`UPDATE users SET is_verified = true WHERE is_verified = false`).catch(() => null);
 
   // ALTER TYPE ADD VALUE cannot run inside a transaction — use a raw connection
   const runner = dataSource.createQueryRunner();
