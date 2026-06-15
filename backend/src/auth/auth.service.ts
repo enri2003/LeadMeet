@@ -109,8 +109,9 @@ export class AuthService {
     });
 
     return {
-      message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
+      message: 'Cuenta creada. Usa el código de verificación para activar tu cuenta.',
       userId: saved.id,
+      otpCode: code,
     };
   }
 

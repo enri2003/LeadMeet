@@ -18,6 +18,7 @@ export interface VerifyOtpPayload {
 export interface AuthResponse {
   message: string;
   userId?: string;
+  otpCode?: string;
 }
 
 export interface SessionUser {

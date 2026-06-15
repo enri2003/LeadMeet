@@ -84,6 +84,15 @@
         </div>
       }
 
+      <!-- Código visible en pantalla -->
+      @if (otpCode) {
+        <div class="mb-6 bg-[#1d2022] border border-[#0055ff]/40 rounded-xl px-4 py-4 text-center">
+          <p class="text-xs text-gray-400 mb-2">Tu código de verificación es:</p>
+          <p class="text-4xl font-extrabold text-white tracking-[12px]">{{ otpCode }}</p>
+          <p class="text-xs text-gray-500 mt-2">Ingrésalo en los campos de abajo</p>
+        </div>
+      }
+
       <!-- Inputs OTP -->
       <div class="flex justify-center gap-3 mb-6" (paste)="onPaste($event)">
         @for (d of digits; track $index) {

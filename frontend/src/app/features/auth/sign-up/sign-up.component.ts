@@ -73,9 +73,9 @@ export class SignUpComponent implements OnInit {
     };
 
     this.authSvc.register({ fullName, username, email, password }).subscribe({
-      next: () => {
+      next: (res) => {
         this.isLoading = false;
-        this.router.navigate(['/verify-otp'], { queryParams: { email } });
+        this.router.navigate(['/verify-otp'], { queryParams: { email, code: res.otpCode } });
       },
       error: (err) => {
         this.isLoading = false;

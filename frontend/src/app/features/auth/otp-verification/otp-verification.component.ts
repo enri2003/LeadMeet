@@ -21,6 +21,7 @@ export class OtpVerificationComponent implements OnInit, OnDestroy {
 
   digits: string[] = ['', '', '', '', '', ''];
   email = '';
+  otpCode = '';
   isLoading = false;
   isResending = false;
   serverError: string | null = null;
@@ -67,6 +68,7 @@ export class OtpVerificationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.email = this.route.snapshot.queryParamMap.get('email') ?? '';
+    this.otpCode = this.route.snapshot.queryParamMap.get('code') ?? '';
     this.startTimer();
   }
 
