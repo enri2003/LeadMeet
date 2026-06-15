@@ -14,7 +14,7 @@ async function bootstrap() {
   const runner = dataSource.createQueryRunner();
   await runner.connect();
   try {
-    await runner.query(`ALTER TYPE meetings_type_enum ADD VALUE IF NOT EXISTS 'clase'`);
+    await runner.query(`ALTER TYPE meeting_type ADD VALUE IF NOT EXISTS 'clase'`);
   } catch {
     // already exists or not supported — safe to ignore
   } finally {
