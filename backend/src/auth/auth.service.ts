@@ -81,7 +81,7 @@ export class AuthService {
     };
   }
 
-  async register(dto: RegisterDto): Promise<{ message: string; userId: string }> {
+  async register(dto: RegisterDto): Promise<{ message: string; userId: string; otpCode: string }> {
     const existing = await this.userRepo.findOne({ where: { email: dto.email } });
 
     if (existing) {
