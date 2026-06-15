@@ -159,7 +159,11 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         stream: localStream,
       };
       this.setupSpeakingDetection(localStream);
-    } catch {
+    } catch (err) {
+      const name = (err as DOMException)?.name ?? '';
+      const msg = name === 'NotAllowedError' || name === 'PermissionDeniedError'
+        ? 'Permite el acceso al micrófono y cámara en tu navegador'
+        : 'Presiona los botones para activar micrófono o cámara';
       this.localParticipant = {
         socketId: 'local',
         userId: this.sessionUserId,
@@ -169,6 +173,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         isCameraOff: true,
         isActiveSpeaker: false,
       };
+      this.showNotification(msg);
     }
 
     this.signaling.connect();
@@ -570,46 +575,72 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.refresh();
   }
 
-  async onToggleMute(): Promise<void> {
+  onToggleMute(): void {
     if (!this.media.currentLocalStream) {
-      if (!(await this.ensureLocalStream())) return;
+      void this.ensureLocalStream().then((ok) => {
+        if (ok) this.zone.run(() => this.applyMuteToggle());
+      });
+      return;
     }
+    this.applyMuteToggle();
+  }
+
+  onToggleCamera(): void {
+    if (!this.media.currentLocalStream) {
+      void this.ensureLocalStream().then((ok) => {
+        if (ok) this.zone.run(() => this.applyCameraToggle());
+      });
+      return;
+    }
+    this.applyCameraToggle();
+  }
+
+  private applyMuteToggle(): void {
     this.isMuted = this.media.toggleMute();
     if (this.localParticipant) {
       this.localParticipant.isMuted = this.isMuted;
     }
     this.signaling.toggleMute(this.roomId, this.isMuted);
     void this.renegotiateWithAllPeers();
-    this.refresh();
+    this.cdr.detectChanges();
   }
 
-  async onToggleCamera(): Promise<void> {
-    if (!this.media.currentLocalStream) {
-      if (!(await this.ensureLocalStream())) return;
-    }
+  private applyCameraToggle(): void {
     this.isCameraOff = this.media.toggleCamera();
     if (this.localParticipant) {
       this.localParticipant.isCameraOff = this.isCameraOff;
     }
     this.signaling.toggleCamera(this.roomId, this.isCameraOff);
     void this.renegotiateWithAllPeers();
-    this.refresh();
+    this.cdr.detectChanges();
   }
 
   private async ensureLocalStream(): Promise<boolean> {
     try {
       const stream = await this.media.initLocalStream();
-      if (this.localParticipant) {
-        this.localParticipant.stream = stream;
-      }
-      if (!this.audioCtx) {
-        this.setupSpeakingDetection(stream);
-      }
-      this.addLocalStreamToPeers();
-      await this.renegotiateWithAllPeers();
-      this.refresh();
+      this.zone.run(() => {
+        if (this.localParticipant) {
+          this.localParticipant.stream = stream;
+        }
+        if (!this.audioCtx) {
+          this.setupSpeakingDetection(stream);
+        }
+        this.addLocalStreamToPeers();
+        void this.renegotiateWithAllPeers();
+        this.cdr.detectChanges();
+      });
       return true;
-    } catch {
+    } catch (err) {
+      const name = (err as DOMException)?.name ?? '';
+      this.zone.run(() => {
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          this.showNotification('Permite el acceso al micrófono y cámara en tu navegador');
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          this.showNotification('No se detectó micrófono o cámara conectados');
+        } else {
+          this.showNotification('No se pudo acceder al micrófono o cámara');
+        }
+      });
       return false;
     }
   }
