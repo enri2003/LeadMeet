@@ -9,8 +9,8 @@ export class CreateMeetingDto {
   @IsString()
   description?: string;
 
-  @IsEnum(['strategy', 'negotiation', 'interview', 'general'])
-  type: 'strategy' | 'negotiation' | 'interview' | 'general';
+  @IsEnum(['strategy', 'negotiation', 'interview', 'general', 'clase'])
+  type: 'strategy' | 'negotiation' | 'interview' | 'general' | 'clase';
 
   @IsDateString()
   startTime: string;
