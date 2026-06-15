@@ -18,9 +18,12 @@ import { MeetingDto, TYPE_COLORS, TYPE_LABELS } from '../../../../core/models/me
 export class PastMeetingsListComponent {
   @Input() meetings: MeetingDto[] = [];
   @Input() showArchiveButton = false;
+  @Input() showUnarchiveButton = false;
   @Input() emptyLabel = 'No hay reuniones en esta sección';
 
-  @Output() archive = new EventEmitter<string>();
+  @Output() archive   = new EventEmitter<string>();
+  @Output() unarchive = new EventEmitter<string>();
+  @Output() delete    = new EventEmitter<string>();
 
   readonly typeLabels = TYPE_LABELS;
   readonly typeColors = TYPE_COLORS;

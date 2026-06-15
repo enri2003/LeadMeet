@@ -27,6 +27,7 @@ export class MeetingControlsComponent {
   @Input() isPanelOpen = true;
   @Input() screenShareWithAudio = false;
   @Input() isLocked = false;
+  @Input() roomId = '';
 
   @Output() toggleMute = new EventEmitter<void>();
   @Output() toggleCamera = new EventEmitter<void>();
@@ -39,6 +40,7 @@ export class MeetingControlsComponent {
   @Output() endMeeting = new EventEmitter<void>();
 
   linkCopied = false;
+  codeCopied = false;
   showLinkTooltip = false;
   currentLink = '';
 
@@ -53,6 +55,18 @@ export class MeetingControlsComponent {
         this.showLinkTooltip = false;
         this.cdr.markForCheck();
       }, 4000);
+    });
+  }
+
+  copyRoomCode(): void {
+    if (!this.roomId) return;
+    navigator.clipboard.writeText(this.roomId).then(() => {
+      this.codeCopied = true;
+      this.cdr.markForCheck();
+      setTimeout(() => {
+        this.codeCopied = false;
+        this.cdr.markForCheck();
+      }, 2500);
     });
   }
 }

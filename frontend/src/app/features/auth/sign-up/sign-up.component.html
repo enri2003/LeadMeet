@@ -28,6 +28,35 @@
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
 
+      <!-- NOMBRE COMPLETO -->
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">
+          Nombre Completo
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </span>
+          <input
+            formControlName="fullName"
+            type="text"
+            placeholder="Juan Pérez"
+            autocomplete="name"
+            class="w-full bg-[#1d2022] border border-white/10 rounded-lg pl-10 pr-4 py-3 text-gray-200 placeholder-gray-600 text-sm
+                   focus:outline-none focus:border-[#0055ff] transition-colors"
+            [ngClass]="f['fullName'].invalid && f['fullName'].touched ? 'border-red-500/60' : ''"
+          />
+        </div>
+        @if (f['fullName'].invalid && f['fullName'].touched) {
+          <p class="mt-1.5 text-xs text-red-400">
+            @if (f['fullName'].hasError('required')) { El nombre es obligatorio. }
+            @else { Mínimo 3 caracteres. }
+          </p>
+        }
+      </div>
+
       <!-- USUARIO -->
       <div class="mb-4">
         <label class="block text-xs font-semibold text-gray-400 tracking-widest uppercase mb-2">
@@ -40,18 +69,18 @@
             </svg>
           </span>
           <input
-            formControlName="fullName"
+            formControlName="username"
             type="text"
             placeholder="juanperez"
             autocomplete="username"
             class="w-full bg-[#1d2022] border border-white/10 rounded-lg pl-10 pr-4 py-3 text-gray-200 placeholder-gray-600 text-sm
                    focus:outline-none focus:border-[#0055ff] transition-colors"
-            [ngClass]="f['fullName'].invalid && f['fullName'].touched ? 'border-red-500/60' : ''"
+            [ngClass]="f['username'].invalid && f['username'].touched ? 'border-red-500/60' : ''"
           />
         </div>
-        @if (f['fullName'].invalid && f['fullName'].touched) {
+        @if (f['username'].invalid && f['username'].touched) {
           <p class="mt-1.5 text-xs text-red-400">
-            @if (f['fullName'].hasError('required')) { El usuario es obligatorio. }
+            @if (f['username'].hasError('required')) { El usuario es obligatorio. }
             @else { Mínimo 3 caracteres. }
           </p>
         }

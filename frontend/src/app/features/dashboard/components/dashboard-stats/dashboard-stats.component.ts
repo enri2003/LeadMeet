@@ -14,11 +14,23 @@ export class DashboardStatsComponent {
   get percentageLabel(): string {
     const pct = this.stats?.percentageChange;
     if (pct === null || pct === undefined) return '—';
-    return (pct >= 0 ? '+' : '') + pct + '%';
+    if (pct === 0) return 'Igual que ayer';
+    return (pct > 0 ? '+' : '') + pct + '% vs ayer';
   }
 
   get isPositive(): boolean {
     return (this.stats?.percentageChange ?? 0) >= 0;
+  }
+
+  get totalHoursLabel(): string {
+    const hours = this.stats?.totalHours ?? 0;
+    const totalMinutes = Math.round(hours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h === 0 && m === 0) return '—';
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
   }
 
   get timingLabel(): string {

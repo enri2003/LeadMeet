@@ -1,3 +1,17 @@
+<!-- Indicador de compartir pantalla -->
+@if (isSharingScreen) {
+  <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-50
+              bg-[#0055ff] border border-[#0055ff]/40 rounded-xl px-4 py-2.5 shadow-2xl
+              flex items-center gap-2.5 w-max">
+    <span class="w-2 h-2 rounded-full bg-white animate-pulse shrink-0"></span>
+    <p class="text-xs text-white font-semibold">Compartiendo pantalla</p>
+    <button (click)="toggleScreenShare.emit()"
+            class="text-white/70 hover:text-white ml-1 text-xs underline transition-colors">
+      Detener
+    </button>
+  </div>
+}
+
 <!-- Enlace copiado tooltip -->
 @if (showLinkTooltip) {
   <div class="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-50
@@ -118,12 +132,12 @@
     <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">PERSONAS</span>
   </button>
 
-  <!-- Copy invite link -->
+  <!-- Copiar enlace -->
   <button
     (click)="copyInviteLink()"
     [ngClass]="linkCopied ? 'bg-green-600' : 'bg-white/10 hover:bg-white/20'"
     class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
-    title="Copiar enlace"
+    title="Copiar enlace de la sala"
   >
     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
       @if (linkCopied) {
@@ -133,6 +147,23 @@
       }
     </svg>
     <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">{{ linkCopied ? 'COPIADO' : 'ENLACE' }}</span>
+  </button>
+
+  <!-- Copiar código -->
+  <button
+    (click)="copyRoomCode()"
+    [ngClass]="codeCopied ? 'bg-green-600' : 'bg-white/10 hover:bg-white/20'"
+    class="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors min-w-[52px]"
+    title="Copiar código de la sala"
+  >
+    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+      @if (codeCopied) {
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      } @else {
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      }
+    </svg>
+    <span class="text-white/60 text-[10px] font-medium uppercase tracking-wide">{{ codeCopied ? 'COPIADO' : 'CÓDIGO' }}</span>
   </button>
 
   <!-- Separator -->

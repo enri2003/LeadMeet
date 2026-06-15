@@ -51,6 +51,12 @@ export class ProfileComponent implements OnInit {
     return this.profile?.fullName || this.profile?.name || 'Usuario';
   }
 
+  get displayRole(): string {
+    const r = this.profile?.role ?? '';
+    if (r === 'Member') return 'Miembro';
+    return r || 'Miembro';
+  }
+
   ngOnInit(): void {
     const session = this.authSvc.getSession();
     if (!session) return;
@@ -81,7 +87,6 @@ export class ProfileComponent implements OnInit {
 
   startEdit(): void {
     this.editFullName = this.profile?.fullName ?? '';
-    this.editName = this.profile?.name ?? '';
     this.saveError = '';
     this.editMode = true;
     this.cdr.markForCheck();
@@ -103,7 +108,7 @@ export class ProfileComponent implements OnInit {
     this.http
       .put<ProfileData>(`${environment.apiUrl}/users/profile?userId=${session.userId}`, {
         fullName: this.editFullName.trim() || null,
-        name: this.editName.trim() || this.profile?.name,
+        name: this.profile?.name,
       })
       .subscribe({
         next: (updated) => {

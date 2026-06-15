@@ -47,4 +47,27 @@ export class MeetingsApiService {
       { params: { userId: this.userId } },
     );
   }
+
+  unarchiveMeeting(id: string): Observable<MeetingDto> {
+    return this.http.patch<MeetingDto>(
+      `${this.baseUrl}/meetings/${id}/unarchive`,
+      {},
+      { params: { userId: this.userId } },
+    );
+  }
+
+  deleteMeeting(id: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.baseUrl}/meetings/${id}`,
+      { params: { userId: this.userId } },
+    );
+  }
+
+  updateMeeting(id: string, dto: { title?: string; description?: string; startTime?: string; endTime?: string; type?: string }): Observable<MeetingDto> {
+    return this.http.put<MeetingDto>(
+      `${this.baseUrl}/meetings/${id}`,
+      dto,
+      { params: { userId: this.userId } },
+    );
+  }
 }

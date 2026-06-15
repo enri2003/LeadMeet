@@ -174,7 +174,7 @@ export class SignalingService implements OnDestroy {
     return this.fromEvent('you-were-kicked');
   }
 
-  onJoinRejected(): Observable<{ reason: string }> {
+  onJoinRejected(): Observable<{ reason: string; scheduledAt?: string }> {
     return this.fromEvent('join-rejected');
   }
 

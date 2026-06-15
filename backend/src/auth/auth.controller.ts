@@ -47,8 +47,22 @@ export class AuthController {
 
   @Post('logout-all')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cerrar sesión en todos los dispositivos (Task 6.5)' })
+  @ApiOperation({ summary: 'Cerrar sesión en todos los dispositivos' })
   logoutAll(@Query('userId') userId: string) {
     return this.authSvc.logoutAll(userId);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Solicitar código de recuperación de contraseña' })
+  forgotPassword(@Body() body: { email: string }) {
+    return this.authSvc.forgotPassword(body.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Restablecer contraseña con código de verificación' })
+  resetPassword(@Body() body: { email: string; code: string; newPassword: string }) {
+    return this.authSvc.resetPassword(body.email, body.code, body.newPassword);
   }
 }

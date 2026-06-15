@@ -40,6 +40,7 @@ export class SignUpComponent implements OnInit {
     this.form = this.fb.group(
       {
         fullName: ['', [Validators.required, Validators.minLength(3)]],
+        username: ['', [Validators.required, Validators.minLength(3)]],
         email: ['', [Validators.required, Validators.email]],
         password: ['', [Validators.required, Validators.minLength(8)]],
         confirmPassword: ['', Validators.required],
@@ -64,13 +65,14 @@ export class SignUpComponent implements OnInit {
     this.isLoading = true;
     this.serverError = null;
 
-    const { fullName, email, password } = this.form.value as {
+    const { fullName, username, email, password } = this.form.value as {
       fullName: string;
+      username: string;
       email: string;
       password: string;
     };
 
-    this.authSvc.register({ fullName, email, password }).subscribe({
+    this.authSvc.register({ fullName, username, email, password }).subscribe({
       next: () => {
         this.isLoading = false;
         this.router.navigate(['/verify-otp'], { queryParams: { email } });

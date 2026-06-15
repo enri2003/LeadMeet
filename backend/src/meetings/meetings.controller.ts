@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MeetingsService } from './meetings.service';
 import type { MeetingFilterStatus } from './dto/query-meetings.dto';
@@ -32,13 +32,39 @@ export class MeetingsController {
   }
 
   @Patch(':id/archive')
-  @ApiOperation({ summary: 'Archivar una reunión (solo el host) (Task 3.5)' })
+  @ApiOperation({ summary: 'Archivar una reunión' })
   @ApiParam({ name: 'id', description: 'UUID de la reunión' })
-  @ApiQuery({ name: 'userId', required: true, description: 'UUID del solicitante (debe ser el host)' })
-  archiveMeeting(
+  @ApiQuery({ name: 'userId', required: true })
+  archiveMeeting(@Param('id') id: string, @Query('userId') userId: string) {
+    return this.meetingsSvc.archiveMeeting(id, userId);
+  }
+
+  @Patch(':id/unarchive')
+  @ApiOperation({ summary: 'Desarchivar una reunión' })
+  @ApiParam({ name: 'id', description: 'UUID de la reunión' })
+  @ApiQuery({ name: 'userId', required: true })
+  unarchiveMeeting(@Param('id') id: string, @Query('userId') userId: string) {
+    return this.meetingsSvc.unarchiveMeeting(id, userId);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar una reunión' })
+  @ApiParam({ name: 'id', description: 'UUID de la reunión' })
+  @ApiQuery({ name: 'userId', required: true })
+  deleteMeeting(@Param('id') id: string, @Query('userId') userId: string) {
+    return this.meetingsSvc.deleteMeeting(id, userId);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Editar/reprogramar una reunión' })
+  @ApiParam({ name: 'id', description: 'UUID de la reunión' })
+  @ApiQuery({ name: 'userId', required: true })
+  updateMeeting(
     @Param('id') id: string,
     @Query('userId') userId: string,
+    @Body() dto: { title?: string; description?: string; startTime?: string; endTime?: string; type?: string },
   ) {
-    return this.meetingsSvc.archiveMeeting(id, userId);
+    return this.meetingsSvc.updateMeeting(id, userId, dto);
   }
 }

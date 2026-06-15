@@ -92,14 +92,14 @@ export class AuthService {
     const { code, expiresAt } = this.cryptoSvc.generateOtp();
 
     const user = this.userRepo.create({
-      name: dto.fullName,
+      name: dto.username?.trim() || dto.fullName,
       fullName: dto.fullName,
       email: dto.email,
       passwordHash,
       isVerified: false,
       otpCode: code,
       otpExpiresAt: expiresAt,
-      role: 'Member',
+      role: 'Miembro',
     });
 
     const saved = await this.userRepo.save(user);
@@ -156,17 +156,33 @@ export class AuthService {
     return { message: 'Nuevo código enviado a tu correo.' };
   }
 
-  // Task 6.5 — invalidate all sessions for this user
   async logoutAll(userId: string): Promise<{ message: string }> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado.');
-
-    // Invalidate by rotating the OTP secret and clearing tokens
-    await this.userRepo.update(userId, {
-      otpCode: null,
-      otpExpiresAt: null,
-    });
-
+    await this.userRepo.update(userId, { otpCode: null, otpExpiresAt: null });
     return { message: 'Todas las sesiones han sido cerradas correctamente.' };
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new NotFoundException('No existe una cuenta con ese correo.');
+    const { code, expiresAt } = this.cryptoSvc.generateOtp();
+    await this.userRepo.update(user.id, { otpCode: code, otpExpiresAt: expiresAt });
+    try {
+      await this.mailSvc.sendOtp(email, user.fullName ?? user.name, code);
+    } catch (err) {
+      this.logger.warn(`SMTP error al enviar código de recuperación a ${email}: ${(err as Error).message}`);
+    }
+    return { message: 'Código de recuperación enviado a tu correo.' };
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new NotFoundException('Usuario no encontrado.');
+    const valid = this.cryptoSvc.isOtpValid(code, user.otpCode, user.otpExpiresAt);
+    if (!valid) throw new UnauthorizedException('Código incorrecto o expirado.');
+    const passwordHash = await this.cryptoSvc.hashPassword(newPassword);
+    await this.userRepo.update(user.id, { passwordHash, otpCode: null, otpExpiresAt: null });
+    return { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' };
   }
 }

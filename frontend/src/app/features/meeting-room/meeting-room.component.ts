@@ -192,7 +192,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     }
 
     if (!joinResult.success) {
-      alert('No puedes unirte — la sala está bloqueada por el anfitrión.');
       await this.router.navigate(['/']);
       return;
     }
@@ -443,6 +442,11 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       this.signaling.onReconnect().subscribe(() => {
         void this.rejoinAfterReconnect();
       }),
+
+      this.signaling.onJoinRejected().subscribe(({ reason }) => {
+        alert(reason ?? 'No puedes unirte a esta sala.');
+        void this.router.navigate(['/']);
+      }),
     ];
 
     this.subs.push(...subscriptions);
@@ -496,6 +500,15 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     localStream?.getTracks().forEach((track) => {
       pc.addTrack(track, localStream);
     });
+
+    if (this.isSharingScreen && this.media.currentScreenStream) {
+      const screenStream = this.media.currentScreenStream;
+      const senders: RTCRtpSender[] = [];
+      screenStream.getTracks().forEach((track) => {
+        senders.push(pc.addTrack(track, screenStream));
+      });
+      this.screenSenders.set(socketId, senders);
+    }
 
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) {

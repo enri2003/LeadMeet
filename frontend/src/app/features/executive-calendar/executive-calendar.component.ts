@@ -69,6 +69,7 @@ export class ExecutiveCalendarComponent implements OnInit {
     { value: 'strategy',    label: 'Estrategia' },
     { value: 'negotiation', label: 'Negociación' },
     { value: 'interview',   label: 'Entrevista' },
+    { value: 'clase',       label: 'Clase' },
   ];
 
   readonly monthNames   = MONTH_NAMES;

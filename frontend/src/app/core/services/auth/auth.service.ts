@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 
 export interface RegisterPayload {
   fullName: string;
+  username?: string;
   email: string;
   password: string;
 }
@@ -59,6 +60,14 @@ export class AuthService {
 
   resendOtp(email: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.base}/resend-otp`, { email });
+  }
+
+  forgotPassword(email: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.base}/forgot-password`, { email });
+  }
+
+  resetPassword(email: string, code: string, newPassword: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.base}/reset-password`, { email, code, newPassword });
   }
 
   deleteAccount(): Observable<{ message: string }> {

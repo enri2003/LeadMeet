@@ -219,10 +219,18 @@
             />
           </div>
         </div>
-        <label class="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" [(ngModel)]="newMeeting.isConfidential" class="w-4 h-4 accent-blue-500"/>
-          <span class="text-sm text-white/60">Reunión confidencial</span>
-        </label>
+        <div>
+          <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Descripción</label>
+          <textarea
+            [(ngModel)]="newMeeting.description"
+            placeholder="Descripción breve (opcional)"
+            rows="2"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none resize-none"
+            style="background:#1d2022; border:1px solid rgba(255,255,255,0.08);"
+            onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
+            onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+          ></textarea>
+        </div>
       </div>
 
       <div class="flex gap-2 mt-6">

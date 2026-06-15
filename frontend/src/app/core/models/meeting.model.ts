@@ -1,5 +1,5 @@
 export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled' | 'archived';
-export type MeetingType   = 'strategy' | 'negotiation' | 'interview' | 'general';
+export type MeetingType   = 'strategy' | 'negotiation' | 'interview' | 'general' | 'clase';
 export type MeetingFilter = 'upcoming' | 'live' | 'past' | 'archived';
 
 export interface MeetingParticipantDto {
@@ -31,6 +31,7 @@ export const TYPE_LABELS: Record<MeetingType, string> = {
   negotiation: 'Negociación',
   interview:   'Entrevista',
   general:     'General',
+  clase:       'Clase',
 };
 
 export const TYPE_COLORS: Record<MeetingType, string> = {
@@ -38,4 +39,5 @@ export const TYPE_COLORS: Record<MeetingType, string> = {
   negotiation: 'bg-yellow-500/15 text-yellow-400',
   interview:   'bg-purple-500/15 text-purple-400',
   general:     'bg-white/10 text-white/50',
+  clase:       'bg-green-500/15 text-green-400',
 };

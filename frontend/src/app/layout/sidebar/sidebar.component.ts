@@ -24,7 +24,9 @@ export class SidebarComponent {
   }
 
   get displayRole(): string {
-    return this.authSvc.getSession()?.role || '';
+    const r = this.authSvc.getSession()?.role ?? '';
+    if (r === 'Member') return 'Miembro';
+    return r || 'Miembro';
   }
 
   get initials(): string {

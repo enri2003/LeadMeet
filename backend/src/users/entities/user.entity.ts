@@ -19,7 +19,7 @@ export class User {
   @Column({ name: 'full_name', type: 'varchar', length: 150, nullable: true })
   fullName: string | null;
 
-  @Column({ length: 100, default: 'Member' })
+  @Column({ length: 100, default: 'Miembro' })
   role: string;
 
   @Column({ length: 150, unique: true })

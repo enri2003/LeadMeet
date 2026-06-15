@@ -12,7 +12,7 @@ import { User } from '../../users/entities/user.entity';
 import { MeetingParticipant } from './meeting-participant.entity';
 
 export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled' | 'archived';
-export type MeetingType = 'strategy' | 'negotiation' | 'interview' | 'general';
+export type MeetingType = 'strategy' | 'negotiation' | 'interview' | 'general' | 'clase';
 
 @Entity('meetings')
 export class Meeting {
@@ -34,7 +34,7 @@ export class Meeting {
 
   @Column({
     type: 'enum',
-    enum: ['strategy', 'negotiation', 'interview', 'general'],
+    enum: ['strategy', 'negotiation', 'interview', 'general', 'clase'],
     default: 'general',
   })
   type!: MeetingType;

@@ -141,10 +141,44 @@ export class MeetingsService {
 
   async archiveMeeting(id: string, requesterId: string): Promise<Meeting> {
     const meeting = await this.meetingRepo.findOne({ where: { id } });
-    if (!meeting) throw new NotFoundException('Meeting not found');
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
     if (meeting.createdById !== requesterId)
-      throw new ForbiddenException('Only the host can archive this meeting');
+      throw new ForbiddenException('Solo el creador puede archivar esta reunión');
     meeting.status = 'archived';
+    return this.meetingRepo.save(meeting);
+  }
+
+  async unarchiveMeeting(id: string, requesterId: string): Promise<Meeting> {
+    const meeting = await this.meetingRepo.findOne({ where: { id } });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    if (meeting.createdById !== requesterId)
+      throw new ForbiddenException('Solo el creador puede desarchivar esta reunión');
+    meeting.status = 'completed';
+    return this.meetingRepo.save(meeting);
+  }
+
+  async deleteMeeting(id: string, requesterId: string): Promise<void> {
+    const meeting = await this.meetingRepo.findOne({ where: { id } });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    if (meeting.createdById !== requesterId)
+      throw new ForbiddenException('Solo el creador puede eliminar esta reunión');
+    await this.meetingRepo.delete(id);
+  }
+
+  async updateMeeting(
+    id: string,
+    requesterId: string,
+    dto: { title?: string; description?: string; startTime?: string; endTime?: string; type?: string },
+  ): Promise<Meeting> {
+    const meeting = await this.meetingRepo.findOne({ where: { id } });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    if (meeting.createdById !== requesterId)
+      throw new ForbiddenException('Solo el creador puede editar esta reunión');
+    if (dto.title) meeting.title = dto.title;
+    if (dto.description !== undefined) meeting.description = dto.description ?? null;
+    if (dto.startTime) meeting.startTime = new Date(dto.startTime);
+    if (dto.endTime) meeting.endTime = new Date(dto.endTime);
+    if (dto.type) meeting.type = dto.type as any;
     return this.meetingRepo.save(meeting);
   }
 }

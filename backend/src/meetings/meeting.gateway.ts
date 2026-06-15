@@ -19,6 +19,7 @@ interface RoomParticipant {
   role: string;
   isMuted: boolean;
   isCameraOff: boolean;
+  isSharingScreen: boolean;
   joinedAt: Date;
 }
 
@@ -96,19 +97,26 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Resolve meeting and cache the real UUID for FK-safe DB operations
     let isCreator = false;
-    if (!this.roomToMeetingId.has(roomId)) {
-      try {
-        const meeting = await this.meetingsService.findByCodeOrId(roomId);
-        if (meeting) {
-          this.roomToMeetingId.set(roomId, meeting.id);
-          isCreator = meeting.createdById === userId;
-        }
-      } catch { /* fallback */ }
-    } else {
-      try {
-        const meeting = await this.meetingsService.findByCodeOrId(roomId);
-        if (meeting) isCreator = meeting.createdById === userId;
-      } catch { /* ignore */ }
+    let resolvedMeeting: Awaited<ReturnType<typeof this.meetingsService.findByCodeOrId>> = null;
+    try {
+      resolvedMeeting = await this.meetingsService.findByCodeOrId(roomId);
+      if (resolvedMeeting) {
+        this.roomToMeetingId.set(roomId, resolvedMeeting.id);
+        isCreator = resolvedMeeting.createdById === userId;
+      }
+    } catch { /* fallback */ }
+
+    // Block entry before scheduled start time (except for creator)
+    if (resolvedMeeting && !isCreator && resolvedMeeting.status === 'scheduled') {
+      const now = new Date();
+      if (now < resolvedMeeting.startTime) {
+        client.emit('join-rejected', {
+          reason: 'La reunión aún no ha comenzado. Por favor, regresa a la hora programada.',
+          scheduledAt: resolvedMeeting.startTime.toISOString(),
+        });
+        if (freshRoom) this.cleanupRoom(roomId);
+        return { success: false, isHost: false };
+      }
     }
 
     // Persist the creator for this room (used in removeFromRoom)
@@ -190,6 +198,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       role: isHost ? 'Anfitrión' : 'Participante',
       isMuted: true,
       isCameraOff: true,
+      isSharingScreen: false,
       joinedAt: new Date(),
     };
 
@@ -252,6 +261,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       role: 'Participante',
       isMuted: true,
       isCameraOff: true,
+      isSharingScreen: false,
       joinedAt: new Date(),
     };
 
@@ -520,6 +530,10 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { roomId: string; isSharingScreen: boolean; screenStreamId?: string },
   ) {
+    const participant = this.rooms.get(data.roomId)?.get(client.id);
+    if (participant) {
+      participant.isSharingScreen = data.isSharingScreen;
+    }
     client.to(data.roomId).emit('participant-screen-share-changed', {
       socketId: client.id,
       isSharingScreen: data.isSharingScreen,

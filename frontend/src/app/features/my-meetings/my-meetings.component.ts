@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MeetingsApiService } from '../../core/services/meetings-api.service';
 import { MeetingDto, MeetingFilter } from '../../core/models/meeting.model';
 import { LiveMeetingCardComponent } from './components/live-meeting-card/live-meeting-card.component';
@@ -28,8 +29,9 @@ interface QuickFilter {
   templateUrl: './my-meetings.component.html',
 })
 export class MyMeetingsComponent implements OnInit {
-  private readonly api = inject(MeetingsApiService);
-  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly api    = inject(MeetingsApiService);
+  private readonly cdr    = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
 
   activeTab: Tab = 'upcoming';
   meetings: MeetingDto[] = [];
@@ -119,11 +121,36 @@ export class MyMeetingsComponent implements OnInit {
     this.api.archiveMeeting(id).subscribe({
       next: () => this.loadMeetings(),
       error: () => {
-        // Optimistic: remove locally until refresh
         this.meetings = this.meetings.filter((m) => m.id !== id);
         this.cdr.markForCheck();
       },
     });
+  }
+
+  onUnarchive(id: string): void {
+    this.api.unarchiveMeeting(id).subscribe({
+      next: () => this.loadMeetings(),
+      error: () => {
+        this.meetings = this.meetings.filter((m) => m.id !== id);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  onDelete(id: string): void {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta reunión?')) return;
+    this.api.deleteMeeting(id).subscribe({
+      next: () => this.loadMeetings(),
+      error: () => {
+        this.meetings = this.meetings.filter((m) => m.id !== id);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  onEnterMeeting(meeting: MeetingDto): void {
+    const code = meeting.meetingCode ?? meeting.id;
+    this.router.navigate(['/meeting', code]);
   }
 
   // ─── Data loading ────────────────────────────────────────────────────────────

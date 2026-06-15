@@ -46,6 +46,7 @@ export class DashboardComponent implements OnInit {
     { value: 'strategy',    label: 'Estrategia' },
     { value: 'negotiation', label: 'Negociación' },
     { value: 'interview',   label: 'Entrevista' },
+    { value: 'clase',       label: 'Clase' },
   ];
 
   private readonly router      = inject(Router);

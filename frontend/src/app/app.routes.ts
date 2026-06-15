@@ -24,6 +24,13 @@ export const routes: Routes = [
         m => m.OtpVerificationComponent,
       ),
   },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password.component').then(
+        m => m.ForgotPasswordComponent,
+      ),
+  },
 
   // ── Protected (auth required) ────────────────────────────────────────────────
   { path: '', canActivate: [authGuard], component: DashboardComponent },
