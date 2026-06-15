@@ -15,19 +15,31 @@ import { DailyNote } from './calendar/entities/daily-note.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: process.env.NODE_ENV === 'production' }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: +(config.get<string>('DB_PORT') ?? '5432'),
-        database: config.get('DB_NAME'),
-        username: config.get('DB_USER'),
-        password: config.get('DB_PASSWORD'),
-        entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog, DailyNote],
-        synchronize: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>('DATABASE_URL');
+        if (databaseUrl) {
+          return {
+            type: 'postgres' as const,
+            url: databaseUrl,
+            ssl: { rejectUnauthorized: false },
+            entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog, DailyNote],
+            synchronize: true,
+          };
+        }
+        return {
+          type: 'postgres' as const,
+          host: config.get<string>('DB_HOST'),
+          port: +(config.get<string>('DB_PORT') ?? '5432'),
+          database: config.get<string>('DB_NAME'),
+          username: config.get<string>('DB_USER'),
+          password: config.get<string>('DB_PASSWORD'),
+          entities: [User, UserSettings, Meeting, MeetingParticipant, MeetingLog, DailyNote],
+          synchronize: true,
+        };
+      },
       inject: [ConfigService],
     }),
     AuthModule,
