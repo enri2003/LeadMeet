@@ -80,7 +80,7 @@ export class SignUpComponent implements OnInit {
       error: (err) => {
         this.isLoading = false;
         this.serverError =
-          err?.error?.message ?? 'Error al crear la cuenta. Intenta de nuevo.';
+          err?.error?.message ?? `Error ${err?.status ?? 0}: ${err?.message ?? 'Sin respuesta del servidor'}`;
       },
     });
   }
