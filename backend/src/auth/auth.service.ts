@@ -149,7 +149,10 @@ export class AuthService {
     const { code, expiresAt } = this.cryptoSvc.generateOtp();
 
     await this.userRepo.update(user.id, { otpCode: code, otpExpiresAt: expiresAt });
-    await this.mailSvc.sendOtp(email, user.fullName ?? user.name, code);
+
+    this.mailSvc.sendOtp(email, user.fullName ?? user.name, code).catch((err: Error) => {
+      this.logger.warn(`SMTP error al reenviar OTP a ${email}: ${err.message}`);
+    });
 
     return { message: 'Nuevo código enviado a tu correo.' };
   }
