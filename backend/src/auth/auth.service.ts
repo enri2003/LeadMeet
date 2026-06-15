@@ -104,11 +104,9 @@ export class AuthService {
 
     const saved = await this.userRepo.save(user);
 
-    try {
-      await this.mailSvc.sendOtp(dto.email, dto.fullName, code);
-    } catch (err) {
-      this.logger.warn(`SMTP error al registrar ${dto.email}: ${(err as Error).message}`);
-    }
+    this.mailSvc.sendOtp(dto.email, dto.fullName, code).catch((err: Error) => {
+      this.logger.warn(`SMTP error al registrar ${dto.email}: ${err.message}`);
+    });
 
     return {
       message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
@@ -151,7 +149,10 @@ export class AuthService {
     const { code, expiresAt } = this.cryptoSvc.generateOtp();
 
     await this.userRepo.update(user.id, { otpCode: code, otpExpiresAt: expiresAt });
-    await this.mailSvc.sendOtp(email, user.fullName ?? user.name, code);
+
+    this.mailSvc.sendOtp(email, user.fullName ?? user.name, code).catch((err: Error) => {
+      this.logger.warn(`SMTP error al reenviar OTP a ${email}: ${err.message}`);
+    });
 
     return { message: 'Nuevo código enviado a tu correo.' };
   }
