@@ -3,35 +3,38 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { UserSettings, DEFAULT_SETTINGS } from '../models/settings.model';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   private readonly http = inject(HttpClient);
+  private readonly authSvc = inject(AuthService);
   private readonly baseUrl = environment.apiUrl;
 
   private readonly _settings = new BehaviorSubject<UserSettings>({ ...DEFAULT_SETTINGS });
   readonly settings$ = this._settings.asObservable();
 
-  // Demo userId — in a real app this comes from the auth token
-  private readonly demoUserId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+  private get userId(): string {
+    return this.authSvc.getSession()?.userId ?? '';
+  }
 
-  load(userId = this.demoUserId): Observable<UserSettings> {
+  load(): Observable<UserSettings> {
     return this.http
-      .get<UserSettings>(`${this.baseUrl}/users/settings`, { params: { userId } })
+      .get<UserSettings>(`${this.baseUrl}/users/settings`, { params: { userId: this.userId } })
       .pipe(tap((s) => this._settings.next(s)));
   }
 
-  save(patch: Partial<UserSettings>, userId = this.demoUserId): Observable<UserSettings> {
+  save(patch: Partial<UserSettings>): Observable<UserSettings> {
     return this.http
-      .patch<UserSettings>(`${this.baseUrl}/users/settings`, patch, { params: { userId } })
+      .patch<UserSettings>(`${this.baseUrl}/users/settings`, patch, { params: { userId: this.userId } })
       .pipe(tap((s) => this._settings.next(s)));
   }
 
-  logoutAll(userId = this.demoUserId): Observable<{ message: string }> {
+  logoutAll(): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(
       `${this.baseUrl}/auth/logout-all`,
       {},
-      { params: { userId } },
+      { params: { userId: this.userId } },
     );
   }
 
