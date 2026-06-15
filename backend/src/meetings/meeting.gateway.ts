@@ -46,8 +46,12 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly lockedRooms = new Map<string, boolean>();
   private readonly waitingRoomEnabled = new Map<string, boolean>();
   private readonly waitingRooms = new Map<string, Map<string, WaitingEntry>>();
-  // Maps roomId (meetingCode or UUID) → actual meeting.id (UUID) for FK-safe DB ops
+  // Maps roomId → actual meeting.id (UUID) for FK-safe DB ops
   private readonly roomToMeetingId = new Map<string, string>();
+  // Maps roomId → creatorUserId (so creator leaving ends the meeting)
+  private readonly roomCreators = new Map<string, string>();
+  // Maps roomId → Set<userId> of users admitted/joined (bypass waiting room on reconnect)
+  private readonly admittedUsers = new Map<string, Set<string>>();
 
   constructor(
     private readonly meetingsService: MeetingsService,
@@ -63,8 +67,10 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomId = this.socketToRoom.get(client.id);
 
     if (roomId) {
-      await this.removeFromRoom(client, roomId);
+      // Page reload / connection drop — NOT intentional leave
+      await this.removeFromRoom(client, roomId, false);
     } else {
+      // Was in waiting room — clean up waiting room entries
       this.waitingRooms.forEach((waitingRoom) => {
         waitingRoom.delete(client.id);
       });
@@ -95,48 +101,72 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
       } catch { /* fallback */ }
     } else {
-      // Meeting already looked up; still need to check creator
       try {
         const meeting = await this.meetingsService.findByCodeOrId(roomId);
         if (meeting) isCreator = meeting.createdById === userId;
       } catch { /* ignore */ }
     }
 
-    const isHost = isCreator || room.size === 0;
+    // Persist the creator for this room (used in removeFromRoom)
+    if (isCreator) {
+      this.roomCreators.set(roomId, userId);
+    }
 
-    if (!isHost) {
-      if (this.lockedRooms.get(roomId)) {
-        client.emit('join-rejected', { reason: 'La sala está bloqueada por el anfitrión' });
-        return { success: false, isHost: false };
-      }
-
-      if (this.waitingRoomEnabled.get(roomId)) {
-        if (!this.waitingRooms.has(roomId)) {
-          this.waitingRooms.set(roomId, new Map());
-        }
-
-        const waiting: WaitingEntry = {
-          socketId: client.id,
-          userId,
-          name,
-        };
-
-        this.waitingRooms.get(roomId)!.set(client.id, waiting);
-
-        const host = [...room.values()].find((p) => p.role === 'Anfitrión');
-        if (host) {
-          this.server.to(host.socketId).emit('participant-waiting', waiting);
-        }
-
-        this.logger.log(`${name} waiting for admission in room ${roomId}`);
-        return { success: false, isHost: false, waiting: true };
+    // Remove any stale entry for this same userId (reconnect with new socket)
+    for (const [oldSocketId, oldParticipant] of room.entries()) {
+      if (oldParticipant.userId === userId && oldSocketId !== client.id) {
+        room.delete(oldSocketId);
+        this.socketToRoom.delete(oldSocketId);
+        this.server.to(roomId).emit('user-left', { socketId: oldSocketId });
+        this.logger.log(`Replaced stale socket for ${name} in room ${roomId}`);
+        break;
       }
     }
 
-    // If the creator joins after someone else was temporarily "host", transfer the role
+    const isHost = isCreator || room.size === 0;
+
+    if (!isHost) {
+      // Check if user was already admitted (reconnecting after page reload)
+      const alreadyAdmitted = this.admittedUsers.get(roomId)?.has(userId) ?? false;
+
+      if (!alreadyAdmitted) {
+        if (this.lockedRooms.get(roomId)) {
+          client.emit('join-rejected', { reason: 'La sala está bloqueada por el anfitrión' });
+          return { success: false, isHost: false };
+        }
+
+        if (this.waitingRoomEnabled.get(roomId)) {
+          if (!this.waitingRooms.has(roomId)) {
+            this.waitingRooms.set(roomId, new Map());
+          }
+
+          const waitingRoom = this.waitingRooms.get(roomId)!;
+
+          // Remove any duplicate waiting-room entries for this userId (page reloads)
+          for (const [wSocketId, entry] of waitingRoom.entries()) {
+            if (entry.userId === userId) {
+              waitingRoom.delete(wSocketId);
+            }
+          }
+
+          const waiting: WaitingEntry = { socketId: client.id, userId, name };
+          waitingRoom.set(client.id, waiting);
+
+          const host = [...room.values()].find((p) => p.role === 'Anfitrión');
+          if (host) {
+            this.server.to(host.socketId).emit('participant-waiting', waiting);
+          }
+
+          this.logger.log(`${name} waiting for admission in room ${roomId}`);
+          return { success: false, isHost: false, waiting: true };
+        }
+      }
+    }
+
+    // If the creator joins after someone else was temporarily host, transfer the role back
     if (isCreator && room.size > 0) {
       const prevHost = [...room.values()].find((p) => p.role === 'Anfitrión');
-      if (prevHost) {
+      if (prevHost && prevHost.userId !== userId) {
         prevHost.role = 'Participante';
         this.server.to(prevHost.socketId).emit('participant-role-changed', {
           socketId: prevHost.socketId,
@@ -163,6 +193,12 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketToRoom.set(client.id, roomId);
     await client.join(roomId);
 
+    // Track admitted users so they can bypass the waiting room on reconnect
+    if (!this.admittedUsers.has(roomId)) {
+      this.admittedUsers.set(roomId, new Set());
+    }
+    this.admittedUsers.get(roomId)!.add(userId);
+
     const settings = await this.usersService.getSettings(userId).catch(() => null);
 
     const existingParticipants = Array.from(room.values()).filter(
@@ -182,7 +218,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const meetingId = this.roomToMeetingId.get(roomId) ?? roomId;
     await this.meetingsService.recordJoin(meetingId, userId, participant.joinedAt).catch(() => null);
 
-    this.logger.log(`${name} joined room ${roomId} (isHost=${isHost})`);
+    this.logger.log(`${name} joined room ${roomId} (isHost=${isHost}, alreadyAdmitted=${this.admittedUsers.get(roomId)?.has(userId)})`);
     return { success: true, isHost };
   }
 
@@ -217,6 +253,12 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketToRoom.set(data.targetSocketId, data.roomId);
 
     this.server.in(data.targetSocketId).socketsJoin(data.roomId);
+
+    // Track admitted so they can rejoin directly on page reload
+    if (!this.admittedUsers.has(data.roomId)) {
+      this.admittedUsers.set(data.roomId, new Set());
+    }
+    this.admittedUsers.get(data.roomId)!.add(waiting.userId);
 
     const existingParticipants = [...room.values()].filter(
       (p) => p.socketId !== data.targetSocketId,
@@ -279,7 +321,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { roomId: string },
   ) {
-    await this.removeFromRoom(client, data.roomId);
+    // Intentional leave — if creator, ends meeting for all
+    await this.removeFromRoom(client, data.roomId, true);
   }
 
   @SubscribeMessage('end-meeting')
@@ -306,12 +349,9 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     waitingRoom?.forEach((_, socketId) => {
       this.server.to(socketId).emit('admission-rejected');
     });
-    this.waitingRooms.delete(data.roomId);
 
     room.forEach((_, socketId) => this.socketToRoom.delete(socketId));
-    this.rooms.delete(data.roomId);
-    this.waitingRoomEnabled.delete(data.roomId);
-    this.roomToMeetingId.delete(data.roomId);
+    this.cleanupRoom(data.roomId);
 
     this.logger.log(
       `Meeting ${data.roomId} ended by host ${participant.name} (duration: ${durationMinutes ?? 'N/A'} min)`,
@@ -424,6 +464,9 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     room.delete(data.targetSocketId);
     this.socketToRoom.delete(data.targetSocketId);
 
+    // Remove from admitted so they go through waiting room if they try to rejoin
+    this.admittedUsers.get(data.roomId)?.delete(target.userId);
+
     this.server.to(data.targetSocketId).emit('you-were-kicked', { by: requester.name });
     await this.server.in(data.targetSocketId).socketsLeave(data.roomId);
     this.server.to(data.roomId).emit('user-left', { socketId: data.targetSocketId });
@@ -508,7 +551,17 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  private async removeFromRoom(client: Socket, roomId: string) {
+  // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Remove a participant from a room.
+   * @param intentionalLeave true when the user explicitly clicked "Salir" (leave-room event).
+   *                         false when the socket just disconnected (page reload / network drop).
+   *
+   * When the CREATOR intentionally leaves → end meeting for everyone.
+   * When any host disconnects without intent (reload) → transfer host temporarily.
+   */
+  private async removeFromRoom(client: Socket, roomId: string, intentionalLeave: boolean) {
     const room = this.rooms.get(roomId);
     if (!room) return;
 
@@ -524,33 +577,49 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const meetingId = this.roomToMeetingId.get(roomId) ?? roomId;
     await this.meetingsService.recordLeave(meetingId, participant.userId, new Date()).catch(() => null);
 
+    const creatorUserId = this.roomCreators.get(roomId);
+    const isCreatorLeaving = !!creatorUserId && participant.userId === creatorUserId;
+
     if (room.size === 0) {
-      // Auto-complete meeting when last person leaves
+      // Last person left → auto-complete meeting
       await this.meetingsService.endMeeting(meetingId).catch(() => null);
-
-      this.rooms.delete(roomId);
-      this.lockedRooms.delete(roomId);
-      this.waitingRoomEnabled.delete(roomId);
-      this.roomToMeetingId.delete(roomId);
-
+      this.cleanupRoom(roomId);
+      this.logger.log(`Room ${roomId} auto-completed (last participant left)`);
+    } else if (intentionalLeave && isCreatorLeaving) {
+      // Creator explicitly clicked "Salir" → end meeting for everyone
+      await this.meetingsService.endMeeting(meetingId).catch(() => null);
+      this.server.to(roomId).emit('meeting-ended', { endedBy: participant.name });
+      // Reject any participants waiting
       const waitingRoom = this.waitingRooms.get(roomId);
       waitingRoom?.forEach((_, socketId) => {
         this.server.to(socketId).emit('admission-rejected');
       });
-      this.waitingRooms.delete(roomId);
+      // Clear socketToRoom for remaining participants before cleanup
+      room.forEach((_, socketId) => this.socketToRoom.delete(socketId));
+      this.cleanupRoom(roomId);
+      this.logger.log(`Meeting ${roomId} ended because creator ${participant.name} left`);
     } else if (participant.role === 'Anfitrión') {
+      // Host left temporarily (page reload / network drop) → transfer to next participant
       const nextHost = [...room.values()][0];
       nextHost.role = 'Anfitrión';
-
       this.server.to(nextHost.socketId).emit('you-are-now-host');
       this.server.to(roomId).emit('participant-role-changed', {
         socketId: nextHost.socketId,
         role: 'Anfitrión',
       });
-
-      this.logger.log(`Host transferred to ${nextHost.name} in room ${roomId}`);
+      this.logger.log(`Host temporarily transferred to ${nextHost.name} in room ${roomId}`);
     }
 
-    this.logger.log(`${participant.name} left room ${roomId}`);
+    this.logger.log(`${participant.name} left room ${roomId} (intentional=${intentionalLeave})`);
+  }
+
+  private cleanupRoom(roomId: string): void {
+    this.rooms.delete(roomId);
+    this.lockedRooms.delete(roomId);
+    this.waitingRoomEnabled.delete(roomId);
+    this.roomToMeetingId.delete(roomId);
+    this.roomCreators.delete(roomId);
+    this.admittedUsers.delete(roomId);
+    this.waitingRooms.delete(roomId);
   }
 }
