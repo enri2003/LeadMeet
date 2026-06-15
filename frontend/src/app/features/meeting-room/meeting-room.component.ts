@@ -570,7 +570,10 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.refresh();
   }
 
-  onToggleMute(): void {
+  async onToggleMute(): Promise<void> {
+    if (!this.media.currentLocalStream) {
+      if (!(await this.ensureLocalStream())) return;
+    }
     this.isMuted = this.media.toggleMute();
     if (this.localParticipant) {
       this.localParticipant.isMuted = this.isMuted;
@@ -580,7 +583,10 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.refresh();
   }
 
-  onToggleCamera(): void {
+  async onToggleCamera(): Promise<void> {
+    if (!this.media.currentLocalStream) {
+      if (!(await this.ensureLocalStream())) return;
+    }
     this.isCameraOff = this.media.toggleCamera();
     if (this.localParticipant) {
       this.localParticipant.isCameraOff = this.isCameraOff;
@@ -588,6 +594,37 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     this.signaling.toggleCamera(this.roomId, this.isCameraOff);
     void this.renegotiateWithAllPeers();
     this.refresh();
+  }
+
+  private async ensureLocalStream(): Promise<boolean> {
+    try {
+      const stream = await this.media.initLocalStream();
+      if (this.localParticipant) {
+        this.localParticipant.stream = stream;
+      }
+      if (!this.audioCtx) {
+        this.setupSpeakingDetection(stream);
+      }
+      this.addLocalStreamToPeers();
+      await this.renegotiateWithAllPeers();
+      this.refresh();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private addLocalStreamToPeers(): void {
+    const stream = this.media.currentLocalStream;
+    if (!stream) return;
+    for (const [, pc] of this.peerConnections) {
+      const existingKinds = new Set(pc.getSenders().map((s) => s.track?.kind));
+      for (const track of stream.getTracks()) {
+        if (!existingKinds.has(track.kind)) {
+          pc.addTrack(track, stream);
+        }
+      }
+    }
   }
 
   private async renegotiateWithAllPeers(): Promise<void> {
