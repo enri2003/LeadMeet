@@ -23,7 +23,7 @@ export class DashboardStatsComponent {
   }
 
   get totalHoursLabel(): string {
-    const hours = this.stats?.totalHours ?? 0;
+    const hours = Number(this.stats?.totalHours ?? 0);
     const totalMinutes = Math.round(hours * 60);
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
