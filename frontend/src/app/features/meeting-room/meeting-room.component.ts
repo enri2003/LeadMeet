@@ -7,7 +7,9 @@ import {
   NgZone,
   OnDestroy,
   OnInit,
+  QueryList,
   ViewChild,
+  ViewChildren,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -104,6 +106,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
 
   @ViewChild('screenVideoEl') screenVideoEl?: ElementRef<HTMLVideoElement>;
   @ViewChild('waitingCamEl') waitingCamEl?: ElementRef<HTMLVideoElement>;
+  @ViewChildren(VideoTileComponent) videoTiles!: QueryList<VideoTileComponent>;
 
   get allParticipants(): RoomParticipant[] {
     return this.localParticipant
@@ -288,6 +291,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         void this.initiateOffer(p.socketId);
         this.showNotification(`${p.name} se unió`);
         this.refresh();
+        // Unlock audio on a slight delay so the new tile is rendered first
+        setTimeout(() => this.unlockRemoteAudio(), 500);
       }),
 
       this.signaling.onUserLeft().subscribe(({ socketId, kicked }) => {
@@ -536,6 +541,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         }
 
         this.refresh();
+        // Attempt to unlock audio after the tile renders with the new stream
+        setTimeout(() => this.unlockRemoteAudio(), 300);
       });
     };
 
@@ -619,6 +626,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       this.localParticipant.isMuted = this.isMuted;
     }
     this.signaling.toggleMute(this.roomId, this.isMuted);
+    this.unlockRemoteAudio();
     this.cdr.detectChanges();
   }
 
@@ -628,8 +636,16 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       this.localParticipant.isCameraOff = this.isCameraOff;
     }
     this.signaling.toggleCamera(this.roomId, this.isCameraOff);
+    this.unlockRemoteAudio();
     void this.renegotiateWithAllPeers();
     this.cdr.detectChanges();
+  }
+
+  private unlockRemoteAudio(): void {
+    this.videoTiles?.forEach(tile => tile.unlockAudio());
+    if (this.audioCtx?.state === 'suspended') {
+      void this.audioCtx.resume();
+    }
   }
 
   private async ensureLocalStream(): Promise<boolean> {

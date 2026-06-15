@@ -85,6 +85,14 @@ export class VideoTileComponent implements OnChanges, AfterViewInit {
 
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
 
+  unlockAudio(): void {
+    if (!this.isLocal && this.videoEl?.nativeElement) {
+      const el = this.videoEl.nativeElement;
+      el.muted = false;
+      el.play().catch(() => null);
+    }
+  }
+
   private static readonly PALETTE = [
     '#1e3a5f','#5f1e1e','#3b1e5f','#1e5f3b',
     '#5f3b1e','#1e5f5f','#5f1e3b','#1e3b5f',
