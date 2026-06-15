@@ -2,4 +2,4 @@
 buildCommand = "npm ci && npm run build"
 
 [deploy]
-startCommand = "node_modules/.bin/serve -s dist/frontend/browser -l $PORT"
+startCommand = "node server.js"
