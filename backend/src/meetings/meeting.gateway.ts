@@ -84,8 +84,12 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { roomId, userId, name } = data;
 
-    if (!this.rooms.has(roomId)) {
+    const freshRoom = !this.rooms.has(roomId);
+    if (freshRoom) {
       this.rooms.set(roomId, new Map());
+      // Always start a fresh room with waiting room and lock OFF
+      this.waitingRoomEnabled.set(roomId, false);
+      this.lockedRooms.set(roomId, false);
     }
 
     const room = this.rooms.get(roomId)!;
@@ -209,6 +213,8 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       participants: existingParticipants,
       isHost,
       roomId,
+      isWaitingRoomEnabled: this.waitingRoomEnabled.get(roomId) ?? false,
+      isLocked: this.lockedRooms.get(roomId) ?? false,
     });
 
     if (!settings?.hidePresence) {
@@ -469,7 +475,7 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to(data.targetSocketId).emit('you-were-kicked', { by: requester.name });
     await this.server.in(data.targetSocketId).socketsLeave(data.roomId);
-    this.server.to(data.roomId).emit('user-left', { socketId: data.targetSocketId });
+    this.server.to(data.roomId).emit('user-left', { socketId: data.targetSocketId, kicked: true });
 
     const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
     await this.meetingsService.recordLeave(meetingId, target.userId, new Date()).catch(() => null);

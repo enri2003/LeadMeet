@@ -201,15 +201,12 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
   }
 
   private async rejoinAfterReconnect(): Promise<void> {
-    const prevWaitingRoomEnabled = this.isWaitingRoomEnabled;
-
     this.peerConnections.forEach((pc) => pc.close());
     this.peerConnections.clear();
     this.screenSenders.clear();
     this.participants = [];
     this.waitingParticipants = [];
     this.isWaiting = false;
-    this.isWaitingRoomEnabled = false;
 
     const joinResult = await this.signaling.joinRoom({
       roomId: this.roomId,
@@ -228,11 +225,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       if (this.localParticipant) {
         this.localParticipant.role = joinResult.isHost ? 'Anfitrión' : 'Participante';
       }
-      if (joinResult.isHost && prevWaitingRoomEnabled) {
-        this.isWaitingRoomEnabled = true;
-        this.signaling.toggleWaitingRoom(this.roomId, true);
-      }
     }
+    // isWaitingRoomEnabled and isLocked are received via room-state event
 
     this.refresh();
   }
@@ -273,6 +267,8 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     const subscriptions: Subscription[] = [
       this.signaling.onRoomState().subscribe((state) => {
         this.isHost = state.isHost;
+        this.isWaitingRoomEnabled = state.isWaitingRoomEnabled ?? false;
+        this.isLocked = state.isLocked ?? false;
         if (this.localParticipant) {
           this.localParticipant.role = state.isHost ? 'Anfitrión' : 'Participante';
         }
@@ -293,10 +289,16 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         this.refresh();
       }),
 
-      this.signaling.onUserLeft().subscribe(({ socketId }) => {
+      this.signaling.onUserLeft().subscribe(({ socketId, kicked }) => {
         const participant = this.participants.find((x) => x.socketId === socketId);
         if (participant) {
-          this.showNotification(`${participant.name} salió`);
+          if (kicked) {
+            this.showNotification(
+              this.isHost ? `Expulsaste a ${participant.name}` : `${participant.name} fue expulsado`,
+            );
+          } else {
+            this.showNotification(`${participant.name} salió`);
+          }
         }
         this.removeParticipant(socketId);
         this.refresh();

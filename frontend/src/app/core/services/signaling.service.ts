@@ -114,8 +114,8 @@ export class SignalingService implements OnDestroy {
     return this.fromEvent('user-joined');
   }
 
-  onUserLeft(): Observable<{ socketId: string }> {
-    return this.fromEvent<{ socketId: string }>('user-left');
+  onUserLeft(): Observable<{ socketId: string; kicked?: boolean }> {
+    return this.fromEvent<{ socketId: string; kicked?: boolean }>('user-left');
   }
 
   onOffer(): Observable<{ offer: RTCSessionDescriptionInit; fromSocketId: string }> {

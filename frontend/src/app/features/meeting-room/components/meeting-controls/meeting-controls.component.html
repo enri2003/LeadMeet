@@ -152,8 +152,9 @@
     <span class="text-white text-[10px] font-medium uppercase tracking-wide">FINALIZAR</span>
   </button>
 
-  <!-- Leave call -->
+  <!-- Leave call — solo para participantes, el anfitrión usa Finalizar -->
   <button
+    *ngIf="!isHost"
     (click)="leaveCall.emit()"
     class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl
            bg-red-600 hover:bg-red-700 transition-colors min-w-[56px]"

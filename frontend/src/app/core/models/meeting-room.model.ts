@@ -22,4 +22,6 @@ export interface RoomStatePayload {
   participants: Omit<RoomParticipant, 'isActiveSpeaker' | 'stream'>[];
   isHost: boolean;
   roomId: string;
+  isWaitingRoomEnabled: boolean;
+  isLocked: boolean;
 }
