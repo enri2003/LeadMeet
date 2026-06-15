@@ -197,10 +197,10 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Inicio *</label>
+            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Hora inicio *</label>
             <input
               [(ngModel)]="newMeeting.startTime"
-              type="datetime-local"
+              type="time"
               class="w-full rounded-xl px-3 py-3 text-sm text-white outline-none"
               style="background:#1d2022; border:1px solid rgba(255,255,255,0.08); color-scheme:dark;"
               onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"
@@ -208,10 +208,10 @@
             />
           </div>
           <div>
-            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Fin *</label>
+            <label class="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1.5">Hora fin *</label>
             <input
               [(ngModel)]="newMeeting.endTime"
-              type="datetime-local"
+              type="time"
               class="w-full rounded-xl px-3 py-3 text-sm text-white outline-none"
               style="background:#1d2022; border:1px solid rgba(255,255,255,0.08); color-scheme:dark;"
               onfocus="this.style.borderColor='rgba(0,85,255,0.5)'"

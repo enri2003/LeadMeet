@@ -180,19 +180,23 @@ export class ExecutiveCalendarComponent implements OnInit {
   }
 
   openCreateModal(): void {
-    const d = this.selectedDate;
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     this.newMeeting = {
       title: '',
       type: 'general',
-      startTime: `${dateStr}T09:00`,
-      endTime: `${dateStr}T10:00`,
+      startTime: '09:00',
+      endTime: '10:00',
       description: '',
       isConfidential: false,
     };
     this.showCreateModal = true;
     this.cdr.markForCheck();
+  }
+
+  private buildDateTime(date: Date, time: string): string {
+    const [h, m] = time.split(':').map(Number);
+    const dt = new Date(date);
+    dt.setHours(h, m, 0, 0);
+    return dt.toISOString();
   }
 
   onCreateMeeting(): void {
@@ -204,8 +208,8 @@ export class ExecutiveCalendarComponent implements OnInit {
       type: this.newMeeting.type,
       description: this.newMeeting.description || undefined,
       isConfidential: this.newMeeting.isConfidential,
-      startTime: new Date(this.newMeeting.startTime).toISOString(),
-      endTime: new Date(this.newMeeting.endTime).toISOString(),
+      startTime: this.buildDateTime(this.selectedDate, this.newMeeting.startTime),
+      endTime: this.buildDateTime(this.selectedDate, this.newMeeting.endTime),
       userId: session?.userId ?? '',
     }).subscribe({
       next: () => {
