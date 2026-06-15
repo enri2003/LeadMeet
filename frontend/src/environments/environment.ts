@@ -3,6 +3,9 @@ function resolveApiUrl(): string {
   if (hostname.includes('devtunnels.ms')) {
     return 'https://' + hostname.replace('-4200.', '-3000.');
   }
+  if (hostname.includes('railway.app')) {
+    return 'https://proyectaplicaciones-production.up.railway.app';
+  }
   return 'http://localhost:3000';
 }
 
