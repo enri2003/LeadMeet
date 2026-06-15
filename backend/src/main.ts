@@ -21,7 +21,12 @@ async function bootstrap() {
     await runner.release();
   }
 
-  app.enableCors({ origin: true, credentials: true });
+  app.enableCors({
+    origin: (_origin, callback) => callback(null, true),
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type,Authorization',
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const config = new DocumentBuilder()
