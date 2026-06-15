@@ -104,11 +104,9 @@ export class AuthService {
 
     const saved = await this.userRepo.save(user);
 
-    try {
-      await this.mailSvc.sendOtp(dto.email, dto.fullName, code);
-    } catch (err) {
-      this.logger.warn(`SMTP error al registrar ${dto.email}: ${(err as Error).message}`);
-    }
+    this.mailSvc.sendOtp(dto.email, dto.fullName, code).catch((err: Error) => {
+      this.logger.warn(`SMTP error al registrar ${dto.email}: ${err.message}`);
+    });
 
     return {
       message: 'Cuenta creada. Revisa tu correo para verificar tu cuenta.',
