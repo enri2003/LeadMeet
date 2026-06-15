@@ -524,7 +524,7 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
       }
     };
 
-    pc.ontrack = ({ streams }) => {
+    pc.ontrack = ({ track, streams }) => {
       this.zone.run(() => {
         const participant = this.participants.find((x) => x.socketId === socketId);
         const stream = streams[0];
@@ -536,12 +536,17 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
         if (!participant.stream) {
           participant.stream = stream;
         } else if (stream.id !== participant.stream.id) {
-          participant.screenStream = stream;
-          participant.isSharingScreen = true;
+          // Only treat as screen share if the track is video-only (screen shares have no audio)
+          // and the participant has signalled they are sharing screen
+          if (track.kind === 'video' && participant.isSharingScreen) {
+            participant.screenStream = stream;
+          } else if (!participant.isSharingScreen) {
+            // Renegotiation produced a new stream — update main stream
+            participant.stream = stream;
+          }
         }
 
         this.refresh();
-        // Attempt to unlock audio after the tile renders with the new stream
         setTimeout(() => this.unlockRemoteAudio(), 300);
       });
     };
@@ -637,7 +642,6 @@ export class MeetingRoomComponent implements OnInit, OnDestroy, AfterViewChecked
     }
     this.signaling.toggleCamera(this.roomId, this.isCameraOff);
     this.unlockRemoteAudio();
-    void this.renegotiateWithAllPeers();
     this.cdr.detectChanges();
   }
 
