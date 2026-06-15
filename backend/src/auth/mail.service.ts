@@ -1,26 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: Transporter;
+  private readonly resend: Resend;
 
   constructor(private readonly config: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: this.config.get<string>('MAIL_USER'),
-        pass: this.config.get<string>('MAIL_APP_PASSWORD'),
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
   }
 
   async sendOtp(to: string, fullName: string, code: string): Promise<void> {
@@ -44,18 +32,17 @@ export class MailService {
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {
-    try {
-      await this.transporter.sendMail({
-        from: `"Lead Meet" <${this.config.get<string>('MAIL_USER')}>`,
-        to,
-        subject,
-        html,
-      });
-      this.logger.log(`Correo enviado a ${to}`);
-    } catch (err) {
-      this.logger.error(`Error enviando correo a ${to}: ${(err as Error).message}`);
+    const { error } = await this.resend.emails.send({
+      from: 'Lead Meet <onboarding@resend.dev>',
+      to,
+      subject,
+      html,
+    });
+    if (error) {
+      this.logger.error(`Error enviando correo a ${to}: ${error.message}`);
       throw new Error('No se pudo enviar el correo. Intenta de nuevo.');
     }
+    this.logger.log(`Correo enviado a ${to}`);
   }
 
   private buildEmail(fullName: string, title: string, subtitle: string, code: string, footer: string): string {
