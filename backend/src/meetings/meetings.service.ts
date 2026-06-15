@@ -102,8 +102,10 @@ export class MeetingsService {
           .orderBy('m.startTime', 'ASC');
         break;
       case 'past':
-        qb.andWhere('m.status = :st', { st: 'completed' })
-          .orderBy('m.startTime', 'DESC');
+        qb.andWhere(
+          '(m.status = :completed OR (m.status = :scheduled AND m.endTime < :now))',
+          { completed: 'completed', scheduled: 'scheduled', now },
+        ).orderBy('m.startTime', 'DESC');
         break;
       case 'archived':
         qb.andWhere('m.status = :st', { st: 'archived' })

@@ -356,9 +356,6 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ? Math.round(data.durationSeconds / 60)
       : undefined;
 
-    const meetingId = this.roomToMeetingId.get(data.roomId) ?? data.roomId;
-    await this.meetingsService.endMeeting(meetingId, durationMinutes).catch(() => null);
-
     this.server.to(data.roomId).emit('meeting-ended', { endedBy: participant.name });
 
     const waitingRoom = this.waitingRooms.get(data.roomId);
@@ -601,13 +598,9 @@ export class WebRtcGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const isCreatorLeaving = !!creatorUserId && participant.userId === creatorUserId;
 
     if (room.size === 0) {
-      // Last person left → auto-complete meeting
-      await this.meetingsService.endMeeting(meetingId).catch(() => null);
       this.cleanupRoom(roomId);
-      this.logger.log(`Room ${roomId} auto-completed (last participant left)`);
+      this.logger.log(`Room ${roomId} vacía, sala cerrada (sin cambiar estado en BD)`);
     } else if (intentionalLeave && isCreatorLeaving) {
-      // Creator explicitly clicked "Salir" → end meeting for everyone
-      await this.meetingsService.endMeeting(meetingId).catch(() => null);
       this.server.to(roomId).emit('meeting-ended', { endedBy: participant.name });
       // Reject any participants waiting
       const waitingRoom = this.waitingRooms.get(roomId);
